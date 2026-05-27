@@ -7,11 +7,7 @@ from app.core import settings
 
 app = FastAPI(title=settings.app_name)
 
-origins = [
-    "http://localhost:3000", 
-    "http://127.0.0.1:3000",
-    "http://whitespace.com"
-    ]
+origins = settings.allowed_origins
 
 app.add_middleware(
     CORSMiddleware,
