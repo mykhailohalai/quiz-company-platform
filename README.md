@@ -47,15 +47,33 @@ cp .env.sample .env
 ## Run the application
 
 You can run the application using command
+
 ```bash
 python main.py
 ```
+
 or via Uvicorn:
+
 ```bash
 uvicorn main:app --reload
 ```
 
 ## Run tests
+
 ```bash
 python -m pytest tests/test_routers.py
+```
+
+## Run the application with Docker
+
+To create image use command:
+
+```bash
+docker build -t <image-name> .
+```
+
+After image created run your container:
+
+```bash
+docker run -p <host-port>:<container-port> <image-name>
 ```
