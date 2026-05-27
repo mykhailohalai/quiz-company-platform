@@ -75,5 +75,5 @@ docker build -t <image-name> .
 After image created run your container:
 
 ```bash
-docker run -p <host-port>:<container-port> <image-name>
+docker run -p <host-port>:<container-port> --env-file .env <image-name>
 ```
