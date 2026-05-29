@@ -3,6 +3,6 @@ from typing import Optional
 
 
 class HealthSchema(BaseModel):
-    status_code: Optional[int] = None
-    detail: Optional[str] = None
-    result: Optional[str] = None
+    status_code: int
+    detail: str
+    result: str
