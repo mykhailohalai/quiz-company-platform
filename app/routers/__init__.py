@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from redis.asyncio import Redis
+from uuid import UUID
 import logging
 
 from app import schemas
 from app.core.database import get_db
 from app.core.redis import get_redis
-from app.schemas.user import UserSignUpRequestSchema, UserDetailResponseSchema
+from app.schemas.user import UserSignUpRequestSchema, UserDetailResponseSchema, UserListResponseSchema, UserUpdateRequestSchema
 from app.utils.unit_of_work import UnitOfWork
 from app.models.user import User 
 
@@ -54,3 +55,50 @@ async def create_user(user_request: UserSignUpRequestSchema):
     logger.info(f"User created: {user_request.__dict__}")
 
     return user
+
+
+@router.get(
+    "/users", 
+    response_model=UserListResponseSchema,
+    status_code=status.HTTP_200_OK
+    )
+async def get_all_users():
+    async with UnitOfWork() as uow:
+        users = await uow.users.get_all()
+    return UserListResponseSchema(users=users)
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=UserDetailResponseSchema,
+    status_code=status.HTTP_200_OK)
+async def get_user_by_id(user_id: UUID):
+    async with UnitOfWork() as uow:
+        user = await uow.users.get_by_id(user_id)
+    return user
+
+
+@router.patch(
+    "/users/{user_id}",
+    response_model=UserDetailResponseSchema,
+    status_code=status.HTTP_200_OK
+    )
+async def update_user_details(
+    user_id: UUID, 
+    updated_user: UserUpdateRequestSchema
+    ):
+    async with UnitOfWork() as uow:
+        user = await uow.users.update(user_id, updated_user)
+        await uow.commit()
+    return user
+
+
+@router.delete(
+    "/users/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT
+    )
+async def delete_user_by_id(user_id: UUID):
+    async with UnitOfWork() as uow:
+        result = await uow.users.delete(user_id)
+        await uow.commit()
+        return result
