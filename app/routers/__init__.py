@@ -90,6 +90,8 @@ async def update_user_details(
     async with UnitOfWork() as uow:
         user = await uow.users.update(user_id, updated_user)
         await uow.commit()
+        await uow.session.refresh(user)
+    
     return user
 
 
