@@ -11,6 +11,8 @@ from app.core.redis import get_redis
 from app.schemas.user import UserSignUpRequestSchema, UserDetailResponseSchema, UserListResponseSchema, UserUpdateRequestSchema
 from app.utils.unit_of_work import UnitOfWork
 from app.models.user import User 
+from app.utils.password import PasswordHelper
+
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -47,12 +49,12 @@ async def redis_health_check(redis: Redis = Depends(get_redis)):
     status_code=status.HTTP_201_CREATED
     )
 async def create_user(user_request: UserSignUpRequestSchema):
-    # logger.info(f"Creating user: {user_request.__dict__}")
     async with UnitOfWork() as uow:
-        user = User(**user_request.model_dump())
+        data = user_request.model_dump()
+        data["password"] = PasswordHelper.hash_password(data["password"])
+        user = User(**data)
         await uow.users.create(user)
         await uow.commit()
-    # logger.info(f"User created: {user_request.__dict__}")
 
     return user
 
@@ -85,13 +87,15 @@ async def get_user_by_id(user_id: UUID):
     )
 async def update_user_details(
     user_id: UUID, 
-    updated_user: UserUpdateRequestSchema
+    updated_data: UserUpdateRequestSchema
     ):
     async with UnitOfWork() as uow:
-        user = await uow.users.update(user_id, updated_user)
+        if updated_data.password is not None:
+            updated_data.password = PasswordHelper.hash_password(updated_data.password)
+        user = await uow.users.update(user_id, updated_data)
         await uow.commit()
         await uow.session.refresh(user)
-    
+
     return user
 
 
@@ -103,4 +107,3 @@ async def delete_user_by_id(user_id: UUID):
     async with UnitOfWork() as uow:
         result = await uow.users.delete(user_id)
         await uow.commit()
-        return result
