@@ -1,10 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
 
 from app.routers import router
 from app.core import settings
+from app.exceptions.user_exceptions import UserAlreadyExistsException, UserNotFoundException
 
 app = FastAPI(title=settings.app_name)
 
@@ -16,9 +18,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True
-    )
+)
 
 app.include_router(router)
+
+
+@app.exception_handler(UserNotFoundException)
+async def user_not_found_handler(request: Request, ex: UserNotFoundException):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content= {"details": str(ex)}
+    )
+
+
+@app.exception_handler(UserAlreadyExistsException)
+async def user_already_exists_handler(request: Request, ex: UserAlreadyExistsException):
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content = {"details": str(ex)}
+    )
+
+
+@app.exception_handler(Exception)
+async def server_error_handler(request: Request, ex: Exception):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"details": "Server error"}
+    )
 
 logging.basicConfig(
     level=logging.INFO,

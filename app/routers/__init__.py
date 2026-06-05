@@ -47,12 +47,12 @@ async def redis_health_check(redis: Redis = Depends(get_redis)):
     status_code=status.HTTP_201_CREATED
     )
 async def create_user(user_request: UserSignUpRequestSchema):
-    logger.info(f"Creating user: {user_request.__dict__}")
+    # logger.info(f"Creating user: {user_request.__dict__}")
     async with UnitOfWork() as uow:
         user = User(**user_request.model_dump())
         await uow.users.create(user)
         await uow.commit()
-    logger.info(f"User created: {user_request.__dict__}")
+    # logger.info(f"User created: {user_request.__dict__}")
 
     return user
 

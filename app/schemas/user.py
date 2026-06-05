@@ -10,8 +10,8 @@ class UserSignInRequestSchema(BaseModel):
 
 
 class UserSignUpRequestSchema(BaseModel):
-    fname: str | None = Field(default=None, min_length=1, max_length=50)
-    sname: str | None = Field(default=None, min_length=1, max_length=50)
+    fname: str | None = Field(default=None, max_length=50)
+    sname: str | None = Field(default=None, max_length=50)
     username: str = Field(..., min_length=1, max_length=50)
     email: EmailStr | None = Field(default=None, max_length=100)
     password: str = Field(..., min_length=8, max_length=255)
