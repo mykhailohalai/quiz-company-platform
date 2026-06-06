@@ -1,6 +1,6 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 
 from app.models.user import User
@@ -12,9 +12,14 @@ class UserRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all(self) -> list[User]:
-        result = await self.session.execute(select(User))
-        return result.scalars().all()
+    async def get_all(
+        self,
+        skip: int = 0,
+        limit: int = 10
+    ) -> tuple[list[User], int]:
+        total = await self.session.scalar(select(func.count()).select_from(User))
+        result = await self.session.execute(select(User).offset(skip).limit(limit))
+        return result.scalars().all(), total
 
     async def get_by_id(self, user_id: UUID) -> User | None:
         user = await self.session.get(User, user_id)

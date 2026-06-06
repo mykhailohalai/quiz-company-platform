@@ -37,5 +37,9 @@ class UserDetailResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserListResponseSchema(BaseModel):
+class PaginatedUserDetailResponseSchema(BaseModel):
     users: list[UserDetailResponseSchema]
+    total: int 
+    skip: int
+    limit: int
+    has_more: bool

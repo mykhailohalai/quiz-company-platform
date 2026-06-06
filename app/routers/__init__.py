@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from redis.asyncio import Redis
@@ -8,11 +8,15 @@ import logging
 from app import schemas
 from app.core.database import get_db
 from app.core.redis import get_redis
-from app.schemas.user import UserSignUpRequestSchema, UserDetailResponseSchema, UserListResponseSchema, UserUpdateRequestSchema
+from app.schemas.user import (
+    UserSignUpRequestSchema,
+    UserDetailResponseSchema,
+    UserUpdateRequestSchema,
+    PaginatedUserDetailResponseSchema,
+)
 from app.utils.unit_of_work import UnitOfWork
-from app.models.user import User 
+from app.models.user import User
 from app.utils.password import PasswordHelper
-
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -44,10 +48,10 @@ async def redis_health_check(redis: Redis = Depends(get_redis)):
 
 
 @router.post(
-    "/users", 
-    response_model=UserDetailResponseSchema, 
-    status_code=status.HTTP_201_CREATED
-    )
+    "/users",
+    response_model=UserDetailResponseSchema,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_user(user_request: UserSignUpRequestSchema):
     async with UnitOfWork() as uow:
         data = user_request.model_dump()
@@ -60,20 +64,29 @@ async def create_user(user_request: UserSignUpRequestSchema):
 
 
 @router.get(
-    "/users", 
-    response_model=UserListResponseSchema,
-    status_code=status.HTTP_200_OK
-    )
-async def get_all_users():
+    "/users",
+    response_model=PaginatedUserDetailResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def get_all_users(
+    skip: int = Query(default=0, ge=0), limit: int = Query(default=10, ge=1, le=100)
+):
     async with UnitOfWork() as uow:
-        users = await uow.users.get_all()
-    return UserListResponseSchema(users=users)
+        users, total = await uow.users.get_all(skip, limit)
+    return PaginatedUserDetailResponseSchema(
+        users=users,
+        total=total,
+        skip=skip,
+        limit=limit,
+        has_more=(skip + limit) < total,
+    )
 
 
 @router.get(
     "/users/{user_id}",
     response_model=UserDetailResponseSchema,
-    status_code=status.HTTP_200_OK)
+    status_code=status.HTTP_200_OK,
+)
 async def get_user_by_id(user_id: UUID):
     async with UnitOfWork() as uow:
         user = await uow.users.get_by_id(user_id)
@@ -83,12 +96,9 @@ async def get_user_by_id(user_id: UUID):
 @router.patch(
     "/users/{user_id}",
     response_model=UserDetailResponseSchema,
-    status_code=status.HTTP_200_OK
-    )
-async def update_user_details(
-    user_id: UUID, 
-    updated_data: UserUpdateRequestSchema
-    ):
+    status_code=status.HTTP_200_OK,
+)
+async def update_user_details(user_id: UUID, updated_data: UserUpdateRequestSchema):
     async with UnitOfWork() as uow:
         if updated_data.password is not None:
             updated_data.password = PasswordHelper.hash_password(updated_data.password)
@@ -99,10 +109,7 @@ async def update_user_details(
     return user
 
 
-@router.delete(
-    "/users/{user_id}",
-    status_code=status.HTTP_204_NO_CONTENT
-    )
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_by_id(user_id: UUID):
     async with UnitOfWork() as uow:
         result = await uow.users.delete(user_id)
