@@ -1,8 +1,6 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from app.routers import health_check
-from app.schemas import HealthSchema
 from main import app
 
 client = TestClient(app)
