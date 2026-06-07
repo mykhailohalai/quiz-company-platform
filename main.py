@@ -10,6 +10,9 @@ from app.exceptions.user_exceptions import UserAlreadyExistsException, UserNotFo
 
 app = FastAPI(title=settings.app_name)
 
+# db mock
+todos = {}
+
 origins = settings.allowed_origins
 
 app.add_middleware(

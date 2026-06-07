@@ -14,9 +14,7 @@ from app.schemas.user import (
     UserUpdateRequestSchema,
     PaginatedUserDetailResponseSchema,
 )
-from app.utils.unit_of_work import UnitOfWork
-from app.models.user import User
-from app.utils.password import PasswordHelper
+from app.services.user_service import UserService, get_user_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -29,7 +27,6 @@ async def health_check():
     )
 
 
-# check if db connected
 @router.get("/db-health", response_model=schemas.HealthSchema)
 async def db_health_check(db: AsyncSession = Depends(get_db)):
     await db.execute(text("SELECT 1"))
@@ -38,7 +35,6 @@ async def db_health_check(db: AsyncSession = Depends(get_db)):
     )
 
 
-# check if redis connected
 @router.get("/redis-health", response_model=schemas.HealthSchema)
 async def redis_health_check(redis: Redis = Depends(get_redis)):
     await redis.ping()
@@ -52,15 +48,11 @@ async def redis_health_check(redis: Redis = Depends(get_redis)):
     response_model=UserDetailResponseSchema,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_user(user_request: UserSignUpRequestSchema):
-    async with UnitOfWork() as uow:
-        data = user_request.model_dump()
-        data["password"] = PasswordHelper.hash_password(data["password"])
-        user = User(**data)
-        await uow.users.create(user)
-        await uow.commit()
-
-    return user
+async def create_user(
+    user_request: UserSignUpRequestSchema,
+    user_service: UserService = Depends(get_user_service),
+):
+    return await user_service.create_user(user_request)
 
 
 @router.get(
@@ -69,10 +61,11 @@ async def create_user(user_request: UserSignUpRequestSchema):
     status_code=status.HTTP_200_OK,
 )
 async def get_all_users(
-    skip: int = Query(default=0, ge=0), limit: int = Query(default=10, ge=1, le=100)
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=10, ge=1, le=100),
+    user_service: UserService = Depends(get_user_service),
 ):
-    async with UnitOfWork() as uow:
-        users, total = await uow.users.get_all(skip, limit)
+    users, total = await user_service.get_all_users(skip, limit)
     return PaginatedUserDetailResponseSchema(
         users=users,
         total=total,
@@ -87,10 +80,11 @@ async def get_all_users(
     response_model=UserDetailResponseSchema,
     status_code=status.HTTP_200_OK,
 )
-async def get_user_by_id(user_id: UUID):
-    async with UnitOfWork() as uow:
-        user = await uow.users.get_by_id(user_id)
-    return user
+async def get_user_by_id(
+    user_id: UUID,
+    user_service: UserService = Depends(get_user_service),
+):
+    return await user_service.get_user_by_id(user_id)
 
 
 @router.patch(
@@ -98,19 +92,17 @@ async def get_user_by_id(user_id: UUID):
     response_model=UserDetailResponseSchema,
     status_code=status.HTTP_200_OK,
 )
-async def update_user_details(user_id: UUID, updated_data: UserUpdateRequestSchema):
-    async with UnitOfWork() as uow:
-        if updated_data.password is not None:
-            updated_data.password = PasswordHelper.hash_password(updated_data.password)
-        user = await uow.users.update(user_id, updated_data)
-        await uow.commit()
-        await uow.session.refresh(user)
-
-    return user
+async def update_user_details(
+    user_id: UUID,
+    updated_data: UserUpdateRequestSchema,
+    user_service: UserService = Depends(get_user_service),
+):
+    return await user_service.update_user(user_id, updated_data)
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_by_id(user_id: UUID):
-    async with UnitOfWork() as uow:
-        result = await uow.users.delete(user_id)
-        await uow.commit()
+async def delete_user_by_id(
+    user_id: UUID,
+    user_service: UserService = Depends(get_user_service),
+):
+    await user_service.delete_user(user_id)
