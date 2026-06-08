@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from redis.asyncio import Redis
 from uuid import UUID
-import logging
 
 from app import schemas
 from app.core.database import get_db
@@ -17,7 +16,6 @@ from app.schemas.user import (
 from app.services.user_service import UserService, get_user_service
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=schemas.HealthSchema)

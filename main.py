@@ -25,9 +25,17 @@ app.add_middleware(
 
 app.include_router(router)
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
+logger = logging.getLogger(__name__)
+
 
 @app.exception_handler(UserNotFoundException)
 async def user_not_found_handler(request: Request, ex: UserNotFoundException):
+    logger.warning("User not found: %s", ex)
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
         content= {"details": str(ex)}
@@ -36,6 +44,7 @@ async def user_not_found_handler(request: Request, ex: UserNotFoundException):
 
 @app.exception_handler(UserAlreadyExistsException)
 async def user_already_exists_handler(request: Request, ex: UserAlreadyExistsException):
+    logger.warning("User creation conflict: %s", ex)
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content = {"details": str(ex)}
@@ -44,17 +53,11 @@ async def user_already_exists_handler(request: Request, ex: UserAlreadyExistsExc
 
 @app.exception_handler(Exception)
 async def server_error_handler(request: Request, ex: Exception):
+    logger.exception("Unhandled server error")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"details": "Server error"}
     )
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-
-logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     uvicorn.run(
