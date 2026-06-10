@@ -17,9 +17,10 @@ services:
             - .env
         environment:
             DB_HOST: db
+            DB_PORT: 5432
 
     db:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         environment:
             POSTGRES_USER: ${DB_USER}
             POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -33,7 +34,7 @@ services:
             retries: 5
             start_period: 5s
         volumes:
-            - db_data:/var/lib/postgresql/data
+            - db_data:/var/lib/postgresql18/data
     
     redis:
         image: redis:7-alpine
