@@ -4,11 +4,12 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 
 from app.models.user import User
+from app.repositories.base_repository import BaseRepository
 from app.schemas.user import UserUpdateRequestSchema
 from app.exceptions.user_exceptions import UserNotFoundException, UserAlreadyExistsException
 
 
-class UserRepository:
+class UserRepository(BaseRepository[User, UserUpdateRequestSchema]):
     def __init__(self, session: AsyncSession):
         self.session = session
 
