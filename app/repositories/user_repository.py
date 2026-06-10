@@ -5,18 +5,17 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.user import User
 from app.schemas.user import UserUpdateRequestSchema
-from app.exceptions.user_exceptions import UserNotFoundException, UserAlreadyExistsException
+from app.exceptions.user_exceptions import (
+    UserNotFoundException,
+    UserAlreadyExistsException,
+)
 
 
 class UserRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all(
-        self,
-        skip: int = 0,
-        limit: int = 10
-    ) -> tuple[list[User], int]:
+    async def get_all(self, skip: int = 0, limit: int = 10) -> tuple[list[User], int]:
         total = await self.session.scalar(select(func.count()).select_from(User))
         result = await self.session.execute(select(User).offset(skip).limit(limit))
         return result.scalars().all(), total
@@ -26,6 +25,19 @@ class UserRepository:
         if user is None:
             raise UserNotFoundException(user_id)
         return user
+
+    async def get_by_username(self, username: str) -> User | None:
+        result = await self.session.execute(
+            select(User).where(User.username == username)
+        )
+        user = result.scalar_one_or_none()
+        return user
+
+    async def get_by_email(self, email: str) -> User | None:
+        result = await self.session.execute(
+            select(User).where(User.email == email)
+        )
+        return result.scalar_one_or_none()
 
     async def create(self, user: User) -> User:
         self.session.add(user)
@@ -44,7 +56,9 @@ class UserRepository:
         await self.session.delete(user)
         return True
 
-    async def update(self, user_id: UUID, updated_user: UserUpdateRequestSchema) -> User | None:
+    async def update(
+        self, user_id: UUID, updated_user: UserUpdateRequestSchema
+    ) -> User | None:
         user = await self.session.get(User, user_id)
         if user is None:
             raise UserNotFoundException(user_id)

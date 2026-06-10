@@ -1,18 +1,23 @@
 from uuid import UUID
 
-from app.routers import router
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.schemas.token import TokenResponseSchema
 from app.schemas.user import (
     PaginatedUserDetailResponseSchema,
     UserDetailResponseSchema,
+    UserSignInRequestSchema,
     UserSignUpRequestSchema,
     UserUpdateRequestSchema,
 )
-from fastapi import Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Security, status
 
 from app.services.user_service import UserService, get_user_service
 
+user_router = APIRouter()
 
-@router.post(
+
+@user_router.post(
     "/users",
     response_model=UserDetailResponseSchema,
     status_code=status.HTTP_201_CREATED,
@@ -24,7 +29,7 @@ async def create_user(
     return await user_service.create_user(user_request)
 
 
-@router.get(
+@user_router.get(
     "/users",
     response_model=PaginatedUserDetailResponseSchema,
     status_code=status.HTTP_200_OK,
@@ -44,7 +49,7 @@ async def get_all_users(
     )
 
 
-@router.get(
+@user_router.get(
     "/users/{user_id}",
     response_model=UserDetailResponseSchema,
     status_code=status.HTTP_200_OK,
@@ -56,7 +61,7 @@ async def get_user_by_id(
     return await user_service.get_user_by_id(user_id)
 
 
-@router.patch(
+@user_router.patch(
     "/users/{user_id}",
     response_model=UserDetailResponseSchema,
     status_code=status.HTTP_200_OK,
@@ -69,9 +74,34 @@ async def update_user_details(
     return await user_service.update_user(user_id, updated_data)
 
 
-@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@user_router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_by_id(
     user_id: UUID,
     user_service: UserService = Depends(get_user_service),
 ):
     await user_service.delete_user(user_id)
+
+
+@user_router.post(
+    "/login", 
+    response_model=TokenResponseSchema, 
+    status_code=status.HTTP_200_OK
+)
+async def user_login(
+    user: UserSignInRequestSchema,
+    user_service: UserService = Depends(get_user_service),
+):
+    token = await user_service.authenticate_user(user.username, user.password)
+    return token
+
+
+@user_router.get(
+    "/me",
+    response_model=UserDetailResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def user_profile(
+    credentials: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    user_service: UserService = Depends(get_user_service),
+):
+    return await user_service.get_current_user(credentials.credentials)
