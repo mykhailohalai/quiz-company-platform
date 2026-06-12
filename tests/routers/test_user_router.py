@@ -51,19 +51,30 @@ async def get_user_by_id(user_id):
     )
 
 
-async def update_user(user_id, updated_data: UserUpdateRequestSchema):
+async def update_user(user_id, current_user_id, updated_data: UserUpdateRequestSchema):
     return User(
         id=user_id,
         username=updated_data.username,
-        email=updated_data.email,
+        email="user2@example.com",
         password="hashed-password",
         created_at=now,
         updated_at=now,
     )
 
 
-async def delete_user(user_id):
+async def delete_user(user_id, current_user_id):
     return None
+
+
+async def get_current_user(token):
+    return User(
+        id=uuid4(),
+        username="user2",
+        email="user2@example.com",
+        password="hashed-password",
+        created_at=now,
+        updated_at=now,
+    )
 
 
 def test_get_all_users_should_success(mock_user_service):
@@ -109,25 +120,30 @@ def test_get_user_by_id_should_success(mock_user_service):
 
 def test_update_user_details_should_success(mock_user_service):
     mock_user_service.update_user = update_user
+    mock_user_service.get_current_user = get_current_user
     user_id = uuid4()
 
     response = client.patch(
         f"/users/{user_id}",
-        json={"username": "updatedname", "email": "updated@example.com"},
+        json={"username": "updatedname"},
+        headers={"Authorization": "Bearer faketoken"},
     )
 
     assert response.status_code == status.HTTP_200_OK
     body = response.json()
     assert body["id"] == str(user_id)
     assert body["username"] == "updatedname"
-    assert body["email"] == "updated@example.com"
     assert "password" not in body
 
 
 def test_delete_user_by_id_should_success(mock_user_service):
     mock_user_service.delete_user = delete_user
+    mock_user_service.get_current_user = get_current_user
     user_id = uuid4()
 
-    response = client.delete(f"/users/{user_id}")
+    response = client.delete(
+        f"/users/{user_id}",
+        headers={"Authorization": "Bearer faketoken"},
+    )
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
