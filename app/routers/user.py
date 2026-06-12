@@ -69,17 +69,21 @@ async def get_user_by_id(
 async def update_user_details(
     user_id: UUID,
     updated_data: UserUpdateRequestSchema,
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
     user_service: UserService = Depends(get_user_service),
 ):
-    return await user_service.update_user(user_id, updated_data)
+    current_user = await user_service.get_current_user(user_details.credentials)
+    return await user_service.update_user(user_id, current_user.id, updated_data)
 
 
 @user_router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_by_id(
     user_id: UUID,
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
     user_service: UserService = Depends(get_user_service),
 ):
-    await user_service.delete_user(user_id)
+    current_user = await user_service.get_current_user(user_details.credentials)
+    await user_service.delete_user(user_id, current_user.id)
 
 
 @user_router.post(
