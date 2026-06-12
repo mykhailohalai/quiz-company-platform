@@ -146,6 +146,22 @@ async def test_get_current_user_returns_user_for_valid_token(service, uow):
     assert result is user
 
 
+async def test_refresh_access_token_returns_new_access_token(service, uow):
+    user = make_user()
+    uow.users.users[user.id] = user
+    refresh_token = JWTHelper.create_refresh_token(user.id, user.username, user.email)
+
+    token = await service.refresh_access_token(refresh_token)
+
+    assert token.access_token
+    assert token.refresh_token == refresh_token
+
+
+async def test_refresh_access_token_raises_for_invalid_token(service):
+    with pytest.raises(InvalidCredentialsException):
+        await service.refresh_access_token("invalid-token")
+
+
 async def test_get_or_create_user_from_auth0_returns_existing_user(service, uow):
     user = make_user(email="existing@example.com")
     uow.users.users[user.id] = user

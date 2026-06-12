@@ -6,7 +6,7 @@ from app.core import settings
 from app.exceptions.user_exceptions import InvalidCredentialsException
 from app.models.user import User
 from app.schemas.user import UserSignUpRequestSchema, UserUpdateRequestSchema
-from app.schemas.token import TokenResponseSchema
+from app.schemas.token import RefreshTokenRequestSchema, TokenResponseSchema
 from app.utils.unit_of_work import UnitOfWork, get_uow
 from app.utils.password import PasswordHelper
 from app.utils.jwt import JWTHelper
@@ -55,7 +55,12 @@ class UserService:
         logger.info("User deleted: id=%s", user_id)
 
     async def get_current_user(self, token: str) -> User:
-        payload = JWTHelper.decode_access_token(token)
+        try:
+            payload = JWTHelper.decode_access_token(token)
+        except InvalidCredentialsException:
+            auth0_payload = JWTHelper.decode_auth0_token(token)
+            return await self.get_or_create_user_from_auth0(auth0_payload["email"])
+
         user_id = UUID(payload["user_id"])
         async with self.uow:
             return await self.uow.users.get_by_id(user_id)
@@ -86,9 +91,29 @@ class UserService:
         if user is None or not PasswordHelper.verify_password(user.password, password):
             raise InvalidCredentialsException()
         logger.info("User authenticated: id=%s username=%s", user.id, user.username)
+
         return TokenResponseSchema(
-            access_token = JWTHelper.create_access_token(user.id, user.username, user.email),
-            expires_in=settings.jwt_expire_minutes * 60
+            access_token=JWTHelper.create_access_token(
+                user.id, user.username, user.email
+            ),
+            refresh_token=JWTHelper.create_refresh_token(
+                user.id, user.username, user.email
+            ),
+            expires_in=settings.jwt_expire_minutes * 60,
+        )
+
+    async def refresh_access_token(self, refresh_token: str) -> TokenResponseSchema:
+        payload = JWTHelper.decode_refresh_token(refresh_token)
+        access_token = JWTHelper.create_access_token(
+            UUID(payload["user_id"]),
+            payload["username"],
+            payload["email"]
+        )
+
+        return TokenResponseSchema(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=settings.jwt_expire_minutes * 60,
         )
 
 

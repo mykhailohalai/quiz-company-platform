@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     jwt_secret_key: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
-
+    jwt_refresh_secret_key: str = ""
+    jwt_refresh_expire_minutes: int = 60 * 24 * 2
 
     @property
     def database_url(self) -> str:

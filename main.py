@@ -6,7 +6,6 @@ import logging
 
 from app.routers import router
 from app.routers.user import user_router
-from app.routers.auth0 import auth0_router
 from app.core import settings
 from app.exceptions.user_exceptions import (
     UserAlreadyExistsException, 
@@ -28,7 +27,6 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(user_router)
-app.include_router(auth0_router)
 
 logging.basicConfig(
     level=logging.INFO,

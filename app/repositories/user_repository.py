@@ -1,3 +1,5 @@
+from sqlalchemy import select
+
 from app.models.user import User
 from app.repositories.base_repository import BaseRepository
 from app.schemas.user import UserUpdateRequestSchema
@@ -11,3 +13,9 @@ class UserRepository(BaseRepository[User, UserUpdateRequestSchema]):
     model = User
     not_found_exception = UserNotFoundException
     already_exists_exception = UserAlreadyExistsException
+
+    async def get_by_username(self, username: str) -> User | None:
+        result = await self.session.execute(
+            select(User).where(User.username == username)
+        )
+        return result.scalar_one_or_none()
