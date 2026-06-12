@@ -8,9 +8,10 @@ from app.routers import router
 from app.routers.user import user_router
 from app.core import settings
 from app.exceptions.user_exceptions import (
-    UserAlreadyExistsException, 
-    UserNotFoundException, 
-    InvalidCredentialsException
+    UserAlreadyExistsException,
+    UserNotFoundException,
+    InvalidCredentialsException,
+    ForbiddenException,
 )
 
 app = FastAPI(title=settings.app_name)
@@ -41,7 +42,7 @@ async def user_not_found_handler(request: Request, ex: UserNotFoundException):
     logger.warning("User not found: %s", ex)
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
-        content= {"details": str(ex)}
+        content= {"detail": str(ex)}
     )
 
 
@@ -50,7 +51,7 @@ async def user_already_exists_handler(request: Request, ex: UserAlreadyExistsExc
     logger.warning("User creation conflict: %s", ex)
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
-        content = {"details": str(ex)}
+        content = {"detail": str(ex)}
     )
 
 
@@ -59,16 +60,22 @@ async def invalid_credentials_handler(request: Request, ex: InvalidCredentialsEx
     logger.warning("Invalid credentials: %s", ex)
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"details": str(ex)}
+        content={"detail": str(ex)}
     )
 
 
+@app.exception_handler(ForbiddenException)
+async def forbidden_exception(request: Request, ex: ForbiddenException):
+    logger.warning("Invalid user: %s", ex)
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN, content={"detail": str(ex)}
+    )
 @app.exception_handler(Exception)
 async def server_error_handler(request: Request, ex: Exception):
     logger.exception("Unhandled server error")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"details": "Server error"}
+        content={"detail": "Server error"}
     )
 
 if __name__ == "__main__":

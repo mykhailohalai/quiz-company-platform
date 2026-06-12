@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 import logging
 
 from app.core import settings
-from app.exceptions.user_exceptions import InvalidCredentialsException
+from app.exceptions.user_exceptions import ForbiddenException, InvalidCredentialsException
 from app.models.user import User
 from app.schemas.user import UserSignUpRequestSchema, UserUpdateRequestSchema
 from app.schemas.token import RefreshTokenRequestSchema, TokenResponseSchema
@@ -38,9 +38,12 @@ class UserService:
         async with self.uow:
             return await self.uow.users.get_by_id(user_id)
 
-    async def update_user(self, user_id: UUID, data: UserUpdateRequestSchema) -> User:
+    async def update_user(self, user_id: UUID, current_user_id: UUID, data: UserUpdateRequestSchema) -> User:
+        if user_id != current_user_id:
+            raise ForbiddenException()
         if data.password is not None:
             data.password = PasswordHelper.hash_password(data.password)
+
         async with self.uow:
             user = await self.uow.users.update(user_id, data)
             await self.uow.commit()
@@ -48,7 +51,10 @@ class UserService:
         logger.info("User updated: id=%s", user_id)
         return user
 
-    async def delete_user(self, user_id: UUID) -> None:
+    async def delete_user(self, user_id: UUID, current_user_id: UUID) -> None:
+        if user_id != current_user_id:
+            raise ForbiddenException()
+
         async with self.uow:
             await self.uow.users.delete(user_id)
             await self.uow.commit()
