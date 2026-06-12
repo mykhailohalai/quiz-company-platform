@@ -1,9 +1,5 @@
-from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.exc import IntegrityError
-
 from app.models.user import User
+from app.repositories.base_repository import BaseRepository
 from app.schemas.user import UserUpdateRequestSchema
 from app.exceptions.user_exceptions import (
     UserNotFoundException,
@@ -11,62 +7,7 @@ from app.exceptions.user_exceptions import (
 )
 
 
-class UserRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    async def get_all(self, skip: int = 0, limit: int = 10) -> tuple[list[User], int]:
-        total = await self.session.scalar(select(func.count()).select_from(User))
-        result = await self.session.execute(select(User).offset(skip).limit(limit))
-        return result.scalars().all(), total
-
-    async def get_by_id(self, user_id: UUID) -> User | None:
-        user = await self.session.get(User, user_id)
-        if user is None:
-            raise UserNotFoundException(user_id)
-        return user
-
-    async def get_by_username(self, username: str) -> User | None:
-        result = await self.session.execute(
-            select(User).where(User.username == username)
-        )
-        user = result.scalar_one_or_none()
-        return user
-
-    async def get_by_email(self, email: str) -> User | None:
-        result = await self.session.execute(
-            select(User).where(User.email == email)
-        )
-        return result.scalar_one_or_none()
-
-    async def create(self, user: User) -> User:
-        self.session.add(user)
-        try:
-            await self.session.flush()
-        except IntegrityError as ex:
-            field = "email" if "email" in str(ex.orig) else "username"
-            raise UserAlreadyExistsException(field)
-        return user
-
-    async def delete(self, user_id: UUID) -> bool:
-        user = await self.session.get(User, user_id)
-        if user is None:
-            raise UserNotFoundException(user_id)
-
-        await self.session.delete(user)
-        return True
-
-    async def update(
-        self, user_id: UUID, updated_user: UserUpdateRequestSchema
-    ) -> User | None:
-        user = await self.session.get(User, user_id)
-        if user is None:
-            raise UserNotFoundException(user_id)
-        try:
-            for field, value in updated_user.model_dump(exclude_unset=True).items():
-                setattr(user, field, value)
-            await self.session.flush()
-        except IntegrityError as ex:
-            field = "email" if "email" in str(ex.orig) else "username"
-            raise UserAlreadyExistsException(field)
-        return user
+class UserRepository(BaseRepository[User, UserUpdateRequestSchema]):
+    model = User
+    not_found_exception = UserNotFoundException
+    already_exists_exception = UserAlreadyExistsException
