@@ -2,8 +2,8 @@ from uuid import uuid4
 
 import pytest
 
+from app.exceptions.general_exceptions import ForbiddenException
 from app.exceptions.user_exceptions import (
-    ForbiddenException,
     InvalidCredentialsException,
     UserAlreadyExistsException,
     UserNotFoundException,
