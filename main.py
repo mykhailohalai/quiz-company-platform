@@ -7,11 +7,11 @@ import logging
 from app.routers import router
 from app.routers.user import user_router
 from app.core import settings
+from app.exceptions.general_exceptions import ForbiddenException
 from app.exceptions.user_exceptions import (
     UserAlreadyExistsException,
     UserNotFoundException,
     InvalidCredentialsException,
-    ForbiddenException,
 )
 
 app = FastAPI(title=settings.app_name)

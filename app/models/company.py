@@ -22,7 +22,7 @@ class Company(TimeStampMixin, Base):
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    description: Mapped[str] = mapped_column(String(1500), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(1500), nullable=True)
     owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
     owner: Mapped["User"] = relationship(back_populates="companies")
     visibility: Mapped[CompanyVisibility] = mapped_column(

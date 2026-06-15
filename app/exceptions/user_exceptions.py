@@ -15,8 +15,3 @@ class UserAlreadyExistsException(Exception):
 class InvalidCredentialsException(Exception):
     def __init__(self):
         super().__init__("Invalid username or password.")
-
-
-class ForbiddenException(Exception):
-    def __init__(self):
-        super().__init__(f"Access denied.")
