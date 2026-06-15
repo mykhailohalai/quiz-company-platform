@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import async_session
 from app.repositories.user_repository import UserRepository
+from app.repositories.company_repository import CompanyRepository
 
 
 class UnitOfWork:
@@ -9,6 +10,7 @@ class UnitOfWork:
     async def __aenter__(self):
         self.session = async_session()
         self.users = UserRepository(self.session)
+        self.companies = CompanyRepository(self.session)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
