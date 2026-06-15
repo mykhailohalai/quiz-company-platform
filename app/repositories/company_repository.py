@@ -2,12 +2,9 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from app.models.user import User
 from app.repositories.base_repository import BaseRepository
 from app.models.company import Company
 from app.schemas.company import CompanyUpdateRequestSchema
-
-# TODO: CHANGE THE EXCEPTIONS FROM USER TO COMPANY
 from app.exceptions.company_exceptions import (
     CompanyNotFoundException,
     CompanyAlreadyExistsException,
@@ -18,14 +15,9 @@ class CompanyRepository(BaseRepository[Company, CompanyUpdateRequestSchema]):
     not_found_exception = CompanyNotFoundException
     already_exists_exception = CompanyAlreadyExistsException
 
-    @property
-    async def is_owner(self, user_id: UUID, company_id: UUID) -> bool:
-        company_owner_id = await self.session.execute(
-            select(User).where(Company.owner.id == user_id)
-        )
-        if user_id == company_owner_id:
+    async def is_owner(self, user_id: UUID, company: Company) -> bool:
+        if user_id == company.owner_id:
             return True
-
         return False
 
     async def get_by_company_name(self, company_name: str) -> Company | None:

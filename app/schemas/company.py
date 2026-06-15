@@ -1,11 +1,11 @@
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from app.models.company import CompanyVisibility
-from app.models.user import User
+from app.schemas.user import UserDetailResponseSchema
 
 class CompanyCreateRequestSchema(BaseModel):
-    name: str = Field(default=None, min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=1500)  
     visibility: CompanyVisibility | None = Field(default=CompanyVisibility.Visible_to_all)
 
@@ -21,11 +21,13 @@ class CompanyDetailResponseSchema(BaseModel):
     name: str 
     description: str | None = None
     owner_id: UUID 
-    owner: User 
+    owner: UserDetailResponseSchema
     visibility: CompanyVisibility 
 
+    model_config = ConfigDict(from_attributes=True)
 
-class PaginatedUserDetailResponseSchema(BaseModel):
+
+class PaginatedCompanyDetailResponseSchema(BaseModel):
     companies: list[CompanyDetailResponseSchema]
     total: int
     skip: int
