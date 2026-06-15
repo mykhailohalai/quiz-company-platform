@@ -6,6 +6,7 @@ import logging
 
 from app.routers import router
 from app.routers.user import user_router
+from app.routers.company import company_router
 from app.core import settings
 from app.exceptions.general_exceptions import ForbiddenException
 from app.exceptions.user_exceptions import (
@@ -32,6 +33,7 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(user_router)
+app.include_router(company_router)
 
 logging.basicConfig(
     level=logging.INFO,

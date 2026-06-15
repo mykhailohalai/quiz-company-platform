@@ -49,8 +49,6 @@ class BaseRepository(Generic[EntityType, UpdateSchemaType]):
 
     async def delete(self, id: UUID) -> bool:
         entity = await self.get_by_id(id)
-        if entity is None:
-            raise self.not_found_exception(id)
         await self.session.delete(entity)
         return True
 

@@ -33,7 +33,7 @@ class CompanyService:
 
     async def get_all_companies(self, skip: int, limit: int) -> tuple[list[Company], int]:
         async with self.uow:
-            return await self.uow.companies.get_all(skip, limit)
+            return await self.uow.companies.get_all_visible(skip, limit)
 
     async def update_company(
         self, current_user_id: UUID, company_id: UUID, data: CompanyUpdateRequestSchema
