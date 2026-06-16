@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Query, status, Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -23,7 +23,14 @@ async def create_company(
 ):
     current_user = await user_service.get_current_user(user_details.credentials)
     company = await company_service.create_company(current_user.id, company_request)
-    return company
+    return CompanyDetailResponseSchema(
+        id=company.id,
+        name=company.name,
+        description=company.description,
+        owner_id=company.owner_id,
+        owner=current_user,
+        visibility=company.visibility,
+    )
 
 
 @company_router.get(
