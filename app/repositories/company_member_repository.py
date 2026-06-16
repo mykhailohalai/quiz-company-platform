@@ -2,15 +2,21 @@ from uuid import UUID
 
 from sqlalchemy import and_, func, select
 
-from app.models.user import User
 from app.repositories.base_repository import BaseRepository
-from app.models.company_member import CompanyMember, InviteStatus, Role
+from app.models.company_member import CompanyMember, InviteStatus
+from app.schemas.company_members import CompanyMemberUpdateRequestSchema
+from app.exceptions.company_member_exceptions import (
+    CompanyMemberAlreadyExistsException,
+    CompanyMemberNotFoundException,
+)
 
 
-class CompanyMemberRepository(BaseRepository[CompanyMember, BaseModel]):
+class CompanyMemberRepository(
+    BaseRepository[CompanyMember, CompanyMemberUpdateRequestSchema]
+):
     model = CompanyMember
     not_found_exception = CompanyMemberNotFoundException
-    already_exists_exception = CompanyMemberAlreadyExsitsException
+    already_exists_exception = CompanyMemberAlreadyExistsException
 
     async def get_by_company_and_user(self, company_id: UUID, user_id: UUID):
         requests = await self.session.execute(
@@ -37,12 +43,15 @@ class CompanyMemberRepository(BaseRepository[CompanyMember, BaseModel]):
         )
 
         result = await self.session.execute(
-            select(CompanyMember).where(
+            select(CompanyMember)
+            .where(
                 and_(
                     CompanyMember.status == InviteStatus.Active,
                     CompanyMember.company_id == company_id,
                 )
-            ).offset(skip).limit(limit)
+            )
+            .offset(skip)
+            .limit(limit)
         )
 
         return result.scalars().all(), total
@@ -53,7 +62,7 @@ class CompanyMemberRepository(BaseRepository[CompanyMember, BaseModel]):
             select(CompanyMember).where(
                 and_(
                     CompanyMember.status == InviteStatus.Pending_invite,
-                    CompanyMember.user_id == user_id
+                    CompanyMember.user_id == user_id,
                 )
             )
         )
@@ -65,22 +74,21 @@ class CompanyMemberRepository(BaseRepository[CompanyMember, BaseModel]):
             select(CompanyMember).where(
                 and_(
                     CompanyMember.status == InviteStatus.Pending_request,
-                    CompanyMember.company_id == company_id
+                    CompanyMember.company_id == company_id,
                 )
             )
         )
 
         return requests.scalars().all()
 
-    
     # Invated by owner
-    async def get_invitations_by_company(self,company_id: UUID):
+    async def get_invitations_by_company(self, company_id: UUID):
         requests = await self.get_request_by_company(company_id)
         users = await self.session.execute(
             select(CompanyMember).where(
                 and_(
                     CompanyMember.status == InviteStatus.Pending_invite,
-                    CompanyMember.company_id == company_id
+                    CompanyMember.company_id == company_id,
                 )
             )
         )
