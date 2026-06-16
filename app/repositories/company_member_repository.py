@@ -81,10 +81,8 @@ class CompanyMemberRepository(
 
         return requests.scalars().all()
 
-    # Invated by owner
     async def get_invitations_by_company(self, company_id: UUID):
-        requests = await self.get_request_by_company(company_id)
-        users = await self.session.execute(
+        result = await self.session.execute(
             select(CompanyMember).where(
                 and_(
                     CompanyMember.status == InviteStatus.Pending_invite,
@@ -92,5 +90,15 @@ class CompanyMemberRepository(
                 )
             )
         )
+        return result.scalars().all()
 
-        return users.scalars().all()
+    async def get_requests_by_user(self, user_id: UUID):
+        result = await self.session.execute(
+            select(CompanyMember).where(
+                and_(
+                    CompanyMember.status == InviteStatus.Pending_request,
+                    CompanyMember.user_id == user_id,
+                )
+            )
+        )
+        return result.scalars().all()
