@@ -10,6 +10,12 @@ from app.services.user_service import UserService, get_user_service
 
 company_router = APIRouter()
 
+def to_company_response(company, owner) -> CompanyDetailResponseSchema:
+    return CompanyDetailResponseSchema.model_validate(
+        {**company.__dict__, "owner": owner}
+    )
+
+
 @company_router.post(
     "/companies",
     response_model=CompanyDetailResponseSchema,
@@ -23,14 +29,7 @@ async def create_company(
 ):
     current_user = await user_service.get_current_user(user_details.credentials)
     company = await company_service.create_company(current_user.id, company_request)
-    return CompanyDetailResponseSchema(
-        id=company.id,
-        name=company.name,
-        description=company.description,
-        owner_id=company.owner_id,
-        owner=current_user,
-        visibility=company.visibility,
-    )
+    return to_company_response(company, current_user)
 
 
 @company_router.get(
@@ -78,7 +77,8 @@ async def update_company(
     user_service: UserService = Depends(get_user_service),
 ):
     current_user = await user_service.get_current_user(user_details.credentials)
-    return await company_service.update_company(current_user.id, company_id, data)
+    updated_company = await company_service.update_company(current_user.id, company_id, data)
+    return to_company_response(updated_company, current_user)
 
 
 @company_router.delete(

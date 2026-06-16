@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import joinedload
 
 from app.repositories.base_repository import BaseRepository
 from app.models.company import Company, CompanyVisibility
@@ -32,6 +33,6 @@ class CompanyRepository(BaseRepository[Company, CompanyUpdateRequestSchema]):
             select(func.count()).select_from(Company).where(condition)
         )
         result = await self.session.execute(
-            select(Company).where(condition).offset(skip).limit(limit)
+            select(Company).where(condition).options(joinedload(Company.owner)). offset(skip).limit(limit)
         )
         return result.scalars().all(), total
