@@ -88,7 +88,7 @@ class CompanyMemberService:
             if user_id != join_request.user_id:
                 raise ForbiddenException()
 
-            await self.uow.company_members.delete(join_request)
+            await self.uow.company_members.delete(join_request_id)
             await self.uow.commit()
 
     async def accept_join_request(self, join_request_id: UUID, current_user_id: UUID) -> CompanyMember:
