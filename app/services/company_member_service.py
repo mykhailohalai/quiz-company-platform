@@ -1,9 +1,12 @@
 from uuid import UUID
 
+from fastapi import Depends
+
 from app.exceptions.general_exceptions import ForbiddenException
+from app.exceptions.company_member_exceptions import CompanyMemberNotFoundException
 from app.models.company_member import CompanyMember, InviteStatus, Role
-from app.utils.unit_of_work import UnitOfWork
-from app.schemas.company_members import CompanyMemberInvitationCreate, CompanyMemberRequestCreate
+from app.utils.unit_of_work import UnitOfWork, get_uow
+from app.schemas.company_member import CompanyMemberInvitationCreate, CompanyMemberRequestCreate
 
 
 class CompanyMemberService:
@@ -119,39 +122,41 @@ class CompanyMemberService:
             await self.uow.company_members.delete(member_id)
             await self.uow.commit()
 
-    async def leave_company(self, member_id: UUID, current_user_id: UUID) -> None:
+    async def leave_company(self, company_id: UUID, current_user_id: UUID) -> None:
         async with self.uow:
-            member = await self.uow.company_members.get_by_id(member_id)
-            if member.user_id != current_user_id:
-                raise ForbiddenException()
+            member = await self.uow.company_members.get_by_company_and_user(company_id, current_user_id)
+            if member is None:
+                raise CompanyMemberNotFoundException(current_user_id)
 
-            await self.uow.company_members.delete(member_id)
+            await self.uow.company_members.delete(member.id)
             await self.uow.commit()
 
     async def get_members(self, company_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
         async with self.uow:
             return await self.uow.company_members.get_members_by_company(company_id, skip, limit)
 
-    async def get_invitations_by_company(self, company_id: UUID, current_user_id: UUID) -> list[CompanyMember]:
+    async def get_invitations_by_company(self, company_id: UUID, current_user_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
         async with self.uow:
             company = await self.uow.companies.get_by_id(company_id)
             if not await self.uow.companies.is_owner(current_user_id, company):
                 raise ForbiddenException()
+            return await self.uow.company_members.get_invitations_by_company(company_id, skip, limit)
 
-            return await self.uow.company_members.get_invitations_by_company(company_id)
-
-    async def get_requests_by_company(self, company_id: UUID, current_user_id: UUID) -> list[CompanyMember]:
+    async def get_requests_by_company(self, company_id: UUID, current_user_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
         async with self.uow:
             company = await self.uow.companies.get_by_id(company_id)
             if not await self.uow.companies.is_owner(current_user_id, company):
                 raise ForbiddenException()
+            return await self.uow.company_members.get_request_by_company(company_id, skip, limit)
 
-            return await self.uow.company_members.get_request_by_company(company_id)
-
-    async def get_invitations_by_user(self, current_user_id: UUID) -> list[CompanyMember]:
+    async def get_invitations_by_user(self, current_user_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
         async with self.uow:
-            return await self.uow.company_members.get_invitation_by_user(current_user_id)
+            return await self.uow.company_members.get_invitation_by_user_paginated(current_user_id, skip, limit)
 
-    async def get_requests_by_user(self, current_user_id: UUID) -> list[CompanyMember]:
+    async def get_requests_by_user(self, current_user_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
         async with self.uow:
-            return await self.uow.company_members.get_requests_by_user(current_user_id)
+            return await self.uow.company_members.get_requests_by_user(current_user_id, skip, limit)
+
+
+def get_company_member_service(uow=Depends(get_uow)) -> CompanyMemberService:
+    return CompanyMemberService(uow)

@@ -4,7 +4,7 @@ from sqlalchemy import and_, func, select
 
 from app.repositories.base_repository import BaseRepository
 from app.models.company_member import CompanyMember, InviteStatus
-from app.schemas.company_members import CompanyMemberUpdateRequestSchema
+from app.schemas.company_member import CompanyMemberUpdateRequestSchema
 from app.exceptions.company_member_exceptions import (
     CompanyMemberAlreadyExistsException,
     CompanyMemberNotFoundException,
@@ -69,36 +69,54 @@ class CompanyMemberRepository(
 
         return invatations.scalars().all()
 
-    async def get_request_by_company(self, company_id: UUID):
-        requests = await self.session.execute(
-            select(CompanyMember).where(
-                and_(
-                    CompanyMember.status == InviteStatus.Pending_request,
-                    CompanyMember.company_id == company_id,
-                )
-            )
+    async def get_request_by_company(self, company_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
+        condition = and_(
+            CompanyMember.status == InviteStatus.Pending_request,
+            CompanyMember.company_id == company_id,
         )
-
-        return requests.scalars().all()
-
-    async def get_invitations_by_company(self, company_id: UUID):
+        total = await self.session.scalar(
+            select(func.count()).select_from(CompanyMember).where(condition)
+        )
         result = await self.session.execute(
-            select(CompanyMember).where(
-                and_(
-                    CompanyMember.status == InviteStatus.Pending_invite,
-                    CompanyMember.company_id == company_id,
-                )
-            )
+            select(CompanyMember).where(condition).offset(skip).limit(limit)
         )
-        return result.scalars().all()
+        return result.scalars().all(), total
 
-    async def get_requests_by_user(self, user_id: UUID):
-        result = await self.session.execute(
-            select(CompanyMember).where(
-                and_(
-                    CompanyMember.status == InviteStatus.Pending_request,
-                    CompanyMember.user_id == user_id,
-                )
-            )
+    async def get_invitations_by_company(self, company_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
+        condition = and_(
+            CompanyMember.status == InviteStatus.Pending_invite,
+            CompanyMember.company_id == company_id,
         )
-        return result.scalars().all()
+        total = await self.session.scalar(
+            select(func.count()).select_from(CompanyMember).where(condition)
+        )
+        result = await self.session.execute(
+            select(CompanyMember).where(condition).offset(skip).limit(limit)
+        )
+        return result.scalars().all(), total
+
+    async def get_invitation_by_user_paginated(self, user_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
+        condition = and_(
+            CompanyMember.status == InviteStatus.Pending_invite,
+            CompanyMember.user_id == user_id,
+        )
+        total = await self.session.scalar(
+            select(func.count()).select_from(CompanyMember).where(condition)
+        )
+        result = await self.session.execute(
+            select(CompanyMember).where(condition).offset(skip).limit(limit)
+        )
+        return result.scalars().all(), total
+
+    async def get_requests_by_user(self, user_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
+        condition = and_(
+            CompanyMember.status == InviteStatus.Pending_request,
+            CompanyMember.user_id == user_id,
+        )
+        total = await self.session.scalar(
+            select(func.count()).select_from(CompanyMember).where(condition)
+        )
+        result = await self.session.execute(
+            select(CompanyMember).where(condition).offset(skip).limit(limit)
+        )
+        return result.scalars().all(), total
