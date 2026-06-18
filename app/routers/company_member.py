@@ -312,3 +312,67 @@ async def get_my_requests(
         limit=limit,
         has_more=skip + limit < total,
     )
+
+@company_member_router.get(
+    "/companies/{company_id}/admins",
+    response_model=PaginatedCompanyMemberListResponse,
+    status_code=status.HTTP_200_OK
+)
+async def get_admins(
+    company_id: UUID,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=10, ge=1, le=100),
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    user_service: UserService = Depends(get_user_service),
+    company_member_service: CompanyMemberService = Depends(get_company_member_service),
+):
+    current_user = await user_service.get_current_user(user_details.credentials)
+    admins, total = await company_member_service.get_admins_by_company(
+        company_id, current_user.id, skip, limit
+    )
+
+    return PaginatedCompanyMemberListResponse(
+        members=admins,
+        total=total,
+        skip=skip,
+        limit=limit,
+        has_more=skip + limit < total,
+    )
+
+
+@company_member_router.patch(
+    "/companies/{company_id}/members/{user_id}/appoint-admin",
+    response_model=CompanyMemberMembershipResponse,
+    status_code=status.HTTP_200_OK
+)
+async def appoint_admin(
+    user_id: UUID,
+    company_id: UUID,
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    user_service: UserService = Depends(get_user_service),
+    company_member_service: CompanyMemberService = Depends(get_company_member_service),
+):
+    current_user = await user_service.get_current_user(user_details.credentials)
+    admin = await company_member_service.appoint_admin(company_id, user_id, current_user.id)
+
+    return CompanyMemberMembershipResponse.model_validate(admin)
+
+
+@company_member_router.patch(
+    "/companies/{company_id}/members/{user_id}/remove-admin",
+    response_model=CompanyMemberMembershipResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def remove_admin(
+    user_id: UUID,
+    company_id: UUID,
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    user_service: UserService = Depends(get_user_service),
+    company_member_service: CompanyMemberService = Depends(get_company_member_service),
+):
+    current_user = await user_service.get_current_user(user_details.credentials)
+    admin = await company_member_service.remove_admin(
+        company_id, user_id, current_user.id
+    )
+
+    return CompanyMemberMembershipResponse.model_validate(admin)

@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.exceptions.company_member_exceptions import CompanyMemberNotFoundException
+from app.exceptions.company_member_exceptions import CompanyMemberNotFoundException, CompanyMemberNotAdminException
 from app.exceptions.general_exceptions import ForbiddenException
 from app.models.company import Company, CompanyVisibility
 from app.models.company_member import CompanyMember, InviteStatus, Role
@@ -268,3 +268,102 @@ async def test_get_members_returns_only_active(company_member_service, uow):
 
     assert members == [active]
     assert total == 1
+
+
+# --- appoint_admin ---
+
+async def test_appoint_admin_sets_role(company_member_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    member = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Member)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[member.id] = member
+
+    result = await company_member_service.appoint_admin(company.id, member.user_id, owner_id)
+
+    assert result.role == Role.Admin
+    assert uow.committed is True
+
+
+async def test_appoint_admin_raises_when_not_owner(company_member_service, uow):
+    company = make_company()
+    member = make_member(company_id=company.id, status=InviteStatus.Active)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[member.id] = member
+
+    with pytest.raises(ForbiddenException):
+        await company_member_service.appoint_admin(company.id, member.user_id, uuid4())
+
+
+async def test_appoint_admin_raises_when_not_active_member(company_member_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    member = make_member(company_id=company.id, status=InviteStatus.Pending_invite)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[member.id] = member
+
+    with pytest.raises(CompanyMemberNotFoundException):
+        await company_member_service.appoint_admin(company.id, member.user_id, owner_id)
+
+
+# --- remove_admin ---
+
+async def test_remove_admin_sets_member_role(company_member_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    admin = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Admin)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[admin.id] = admin
+
+    result = await company_member_service.remove_admin(company.id, admin.user_id, owner_id)
+
+    assert result.role == Role.Member
+    assert uow.committed is True
+
+
+async def test_remove_admin_raises_when_not_owner(company_member_service, uow):
+    company = make_company()
+    admin = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Admin)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[admin.id] = admin
+
+    with pytest.raises(ForbiddenException):
+        await company_member_service.remove_admin(company.id, admin.user_id, uuid4())
+
+
+async def test_remove_admin_raises_when_not_admin(company_member_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    member = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Member)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[member.id] = member
+
+    with pytest.raises(CompanyMemberNotAdminException):
+        await company_member_service.remove_admin(company.id, member.user_id, owner_id)
+
+
+# --- get_admins_by_company ---
+
+async def test_get_admins_returns_only_admins(company_member_service, uow):
+    user_id = uuid4()
+    company = make_company()
+    admin = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Admin)
+    member = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Member)
+    current_user = make_member(company_id=company.id, user_id=user_id, status=InviteStatus.Active)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[admin.id] = admin
+    uow.company_members.members[member.id] = member
+    uow.company_members.members[current_user.id] = current_user
+
+    admins, total = await company_member_service.get_admins_by_company(company.id, user_id, skip=0, limit=10)
+
+    assert admins == [admin]
+    assert total == 1
+
+
+async def test_get_admins_raises_when_not_member(company_member_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(ForbiddenException):
+        await company_member_service.get_admins_by_company(company.id, uuid4(), skip=0, limit=10)
