@@ -84,6 +84,20 @@ class CompanyMemberRepository(
 
         return result.scalars().all(), total
 
+    async def get_admin_by_id(self, admin_id: UUID, company_id: UUID):
+        admin = await self.session.execute(
+            select(CompanyMember).where(
+                and_(
+                    CompanyMember.role == Role.Admin,
+                    CompanyMember.user_id == admin_id,
+                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.company_id == company_id,
+                )
+            )
+        )
+
+        return admin.scalar_one_or_none()
+
     # Owner invites user
     async def get_invitation_by_user(self, user_id: UUID):
         invatations = await self.session.execute(
