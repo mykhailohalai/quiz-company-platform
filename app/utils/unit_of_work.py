@@ -20,6 +20,7 @@ class UnitOfWork:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
             await self.rollback()
+        self.session.expunge_all()
         await self.session.close()
 
     async def commit(self):

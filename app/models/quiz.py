@@ -7,7 +7,7 @@ from enum import Enum, auto
 from app.core.database import Base
 from app.models.mixins import TimeStampMixin
 
-class QuestionType(Enum):
+class QuestionType(str, Enum):
     SingleAnswer = auto()
     MultipleAnswer = auto()
 
@@ -20,7 +20,7 @@ class Quiz(TimeStampMixin, Base):
     frequency: Mapped[int] = mapped_column(Integer, nullable=False)
     company_id: Mapped[UUID] = mapped_column(ForeignKey("companies.id"), nullable=False)
     questions: Mapped[list["Question"]] = relationship(
-        back_populates="quiz", cascade="all, delete-orphan"
+        back_populates="quiz", cascade="all, delete-orphan", lazy="selectin"
     )
 
 
@@ -33,7 +33,7 @@ class Question(Base):
     quiz_id: Mapped[UUID] = mapped_column(ForeignKey("quizzes.id"), nullable=False)
     quiz: Mapped["Quiz"] = relationship(back_populates="questions")
     answers: Mapped[list["Answer"]] = relationship(
-        back_populates="question", cascade="all, delete-orphan"
+        back_populates="question", cascade="all, delete-orphan", lazy="selectin"
     )
 
 

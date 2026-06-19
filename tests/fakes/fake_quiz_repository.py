@@ -23,6 +23,12 @@ class FakeQuizRepository:
         del self.quizzes[quiz_id]
         return True
 
+    async def get_with_relations(self, quiz_id: UUID):
+        quiz = self.quizzes.get(quiz_id)
+        if quiz is None:
+            raise QuizNotFoundException(quiz_id)
+        return quiz
+
     async def get_by_company(self, company_id: UUID, skip: int = 0, limit: int = 10):
         result = [q for q in self.quizzes.values() if q.company_id == company_id]
         return result[skip:skip + limit], len(result)
