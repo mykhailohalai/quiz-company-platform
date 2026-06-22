@@ -12,3 +12,8 @@ class QuizAlreadyExistsException(Exception):
         self.field = field
         super().__init__(f"Quiz with the same {field} already exists.")
 
+
+class QuizFrequencyException(Exception):
+    def __init__(self):
+        super().__init__("You cannot take this quiz yet. Please wait until the frequency period has passed.")
+

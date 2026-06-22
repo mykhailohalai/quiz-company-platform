@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import logging
 from uuid import UUID
 
@@ -5,8 +6,10 @@ from fastapi import Depends
 
 from app.exceptions.general_exceptions import ForbiddenException
 
-from app.models.company_member import Role
+from app.exceptions.quiz_exceptions import QuizFrequencyException
 from app.models.quiz import Quiz, Question, Answer
+from app.models.quiz_result import QuizResult
+from app.schemas.quiz_result import QuizSubmitSchema
 from app.utils.unit_of_work import UnitOfWork, get_uow
 from app.schemas.quiz import QuizCreateRequestSchema, QuizUpdateRequestSchema
 
@@ -61,7 +64,7 @@ class QuizService:
                     self.uow.session.add(answer)
 
             await self.uow.commit()
-            quiz = await self.uow.quizzes.get_with_relations(quiz.id)
+            quiz = await self.uow.quizzes.get_with_relations(company_id, quiz.id)
             logger.info("Quiz created: id=%s company_id=%s", quiz.id, company_id)
             return quiz
 
@@ -101,6 +104,67 @@ class QuizService:
     ) -> tuple[list[Quiz], int]:
         async with self.uow:
             return await self.uow.quizzes.get_by_company(company_id, skip, limit)
+
+    async def get_quiz_by_company_member(
+        self, company_id: UUID, user_id: UUID, quiz_id: UUID
+    ) -> Quiz:
+        async with self.uow:
+            member = await self.uow.company_members.get_active_member_by_company_and_user(
+                company_id, user_id
+            )
+            if member is None:
+                raise ForbiddenException()
+            return await self.uow.quizzes.get_with_relations(company_id, quiz_id)
+
+    async def submit_quiz(
+    self, company_id: UUID, quiz_id: UUID, user_id: UUID, data: QuizSubmitSchema
+    ) -> QuizResult:
+        async with self.uow:
+            member = await self.uow.company_members.get_active_member_by_company_and_user(
+                company_id, user_id
+            )
+            if member is None:
+                raise ForbiddenException()
+
+            quiz = await self.uow.quizzes.get_with_relations(company_id, quiz_id)
+
+            last_attempt = await self.uow.quiz_results.get_last_attempt(quiz_id, user_id)
+            if last_attempt:
+                created_at = last_attempt.created_at
+                if created_at.tzinfo is None:
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+                days_since = (datetime.now(timezone.utc) - created_at).days
+                if days_since < quiz.frequency:
+                    raise QuizFrequencyException()
+
+            correct_map = {
+                q.id: {a.id for a in q.answers if a.is_correct}
+                for q in quiz.questions
+            }
+            correct_answers = sum(
+                1 for ua in data.answers
+                if set(ua.answer_ids) == correct_map.get(ua.question_id, set())
+            )
+
+            result = QuizResult(
+                user_id=user_id,
+                quiz_id=quiz_id,
+                company_id=company_id,
+                correct_answers=correct_answers,
+                total_questions=len(quiz.questions),
+            )
+            await self.uow.quiz_results.create(result)
+            await self.uow.commit()
+
+            return result
+    
+    async def get_average_by_company(self, user_id: UUID, company_id: UUID) -> float:
+        async with self.uow:
+            return await self.uow.quiz_results.get_average_by_company(user_id, company_id)
+
+    async def get_average_by_system(self, user_id: UUID) -> float:
+        async with self.uow:
+            return await self.uow.quiz_results.get_average_by_system(user_id)
 
 
 def get_quiz_service(uow=Depends(get_uow)) -> QuizService:
