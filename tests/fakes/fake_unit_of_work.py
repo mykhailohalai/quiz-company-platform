@@ -3,14 +3,16 @@ from fakes.fake_user_repository import FakeUserRepository
 from fakes.fake_company_repository import FakeCompanyRepository
 from fakes.fake_company_member_repository import FakeCompanyMemberRepository
 from fakes.fake_quiz_repository import FakeQuizRepository
+from fakes.fake_quiz_result_repository import FakeQuizResultRepository
 
 
 class FakeUnitOfWork:
-    def __init__(self, users=None, companies=None, company_members=None, quizzes=None):
+    def __init__(self, users=None, companies=None, company_members=None, quizzes=None, quiz_results=None):
         self.users = FakeUserRepository(users)
         self.companies = FakeCompanyRepository(companies)
         self.company_members = FakeCompanyMemberRepository(company_members)
         self.quizzes = FakeQuizRepository(quizzes)
+        self.quiz_results = FakeQuizResultRepository(quiz_results)
         self.session = FakeSession()
         self.committed = False
 

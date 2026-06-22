@@ -23,6 +23,12 @@ class FakeCompanyMemberRepository:
                 return m
         return None
 
+    async def get_active_member_by_company_and_user(self, company_id: UUID, user_id: UUID):
+        for m in self.members.values():
+            if m.company_id == company_id and m.user_id == user_id and m.status == InviteStatus.Active:
+                return m
+        return None
+
     async def create(self, member):
         self.members[member.id] = member
         return member
