@@ -12,6 +12,7 @@ class QuizResult(Base):
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    company_id: Mapped[UUID] = mapped_column(ForeignKey("companies.id"), nullable=False)
     quiz_id: Mapped[UUID] = mapped_column(ForeignKey("quizzes.id"), nullable=False)
     score: Mapped[float] = mapped_column(Numeric(precision=5, scale=2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
