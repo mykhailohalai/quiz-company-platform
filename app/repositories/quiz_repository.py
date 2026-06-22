@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import selectinload
 
 from app.exceptions.quiz_exceptions import (
@@ -17,11 +17,16 @@ class QuizRepository(BaseRepository[Quiz, QuizUpdateRequestSchema]):
     not_found_exception = QuizNotFoundException
     already_exists_exception = QuizAlreadyExistsException
 
-    async def get_with_relations(self, quiz_id: UUID) -> Quiz:
+    async def get_with_relations(self, company_id: UUID, quiz_id: UUID) -> Quiz:
         result = await self.session.execute(
             select(Quiz)
             .options(selectinload(Quiz.questions).selectinload(Question.answers))
-            .where(Quiz.id == quiz_id)
+            .where(
+                and_(
+                    Quiz.id == quiz_id,
+                    Quiz.company_id == company_id
+                )
+            )
         )
         quiz = result.scalar_one_or_none()
         if quiz is None:

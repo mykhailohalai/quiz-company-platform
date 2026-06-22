@@ -22,13 +22,27 @@ class CompanyMemberRepository(
         requests = await self.session.execute(
             select(CompanyMember).where(
                 and_(
-                    company_id == CompanyMember.company_id
-                    and user_id == CompanyMember.user_id
+                    company_id == CompanyMember.company_id,
+                    user_id == CompanyMember.user_id,
                 )
             )
         )
 
         return requests.scalar_one_or_none()
+
+    async def get_active_member_by_company_and_user(
+        self, company_id: UUID, user_id: UUID
+    ):
+        result = await self.session.execute(
+            select(CompanyMember).where(
+                and_(
+                    CompanyMember.company_id == company_id,
+                    CompanyMember.user_id == user_id,
+                    CompanyMember.status == InviteStatus.Active,
+                )
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def get_members_by_company(self, company_id: UUID, skip: int, limit: int):
         total = await self.session.scalar(
@@ -64,7 +78,7 @@ class CompanyMemberRepository(
                 and_(
                     CompanyMember.status == InviteStatus.Active,
                     CompanyMember.company_id == company_id,
-                    CompanyMember.role == Role.Admin
+                    CompanyMember.role == Role.Admin,
                 )
             )
         )
@@ -111,7 +125,9 @@ class CompanyMemberRepository(
 
         return invatations.scalars().all()
 
-    async def get_request_by_company(self, company_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
+    async def get_request_by_company(
+        self, company_id: UUID, skip: int, limit: int
+    ) -> tuple[list[CompanyMember], int]:
         condition = and_(
             CompanyMember.status == InviteStatus.Pending_request,
             CompanyMember.company_id == company_id,
@@ -124,7 +140,9 @@ class CompanyMemberRepository(
         )
         return result.scalars().all(), total
 
-    async def get_invitations_by_company(self, company_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
+    async def get_invitations_by_company(
+        self, company_id: UUID, skip: int, limit: int
+    ) -> tuple[list[CompanyMember], int]:
         condition = and_(
             CompanyMember.status == InviteStatus.Pending_invite,
             CompanyMember.company_id == company_id,
@@ -137,7 +155,9 @@ class CompanyMemberRepository(
         )
         return result.scalars().all(), total
 
-    async def get_invitation_by_user_paginated(self, user_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
+    async def get_invitation_by_user_paginated(
+        self, user_id: UUID, skip: int, limit: int
+    ) -> tuple[list[CompanyMember], int]:
         condition = and_(
             CompanyMember.status == InviteStatus.Pending_invite,
             CompanyMember.user_id == user_id,
@@ -150,7 +170,9 @@ class CompanyMemberRepository(
         )
         return result.scalars().all(), total
 
-    async def get_requests_by_user(self, user_id: UUID, skip: int, limit: int) -> tuple[list[CompanyMember], int]:
+    async def get_requests_by_user(
+        self, user_id: UUID, skip: int, limit: int
+    ) -> tuple[list[CompanyMember], int]:
         condition = and_(
             CompanyMember.status == InviteStatus.Pending_request,
             CompanyMember.user_id == user_id,
