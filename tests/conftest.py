@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -6,6 +6,7 @@ from app.services.user_service import UserService, get_user_service
 from app.services.company_service import CompanyService, get_company_service
 from app.services.company_member_service import CompanyMemberService, get_company_member_service
 from app.services.quiz_service import QuizService, get_quiz_service
+from app.services.redis_service import RedisService
 from main import app
 from fakes.fake_unit_of_work import FakeUnitOfWork
 
@@ -51,8 +52,15 @@ def company_member_service(uow):
 
 
 @pytest.fixture
-def quiz_service(uow):
-    return QuizService(uow)
+def mock_redis_service():
+    service = MagicMock(spec=RedisService)
+    service.save_quiz_answers_redis = AsyncMock()
+    return service
+
+
+@pytest.fixture
+def quiz_service(uow, mock_redis_service):
+    return QuizService(uow, mock_redis_service)
 
 
 @pytest.fixture
