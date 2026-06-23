@@ -30,3 +30,13 @@ class QuizResultResponseSchema(BaseModel):
         if self.total_questions == 0:
             return 0.0
         return round(self.correct_answers / self.total_questions * 100, 2)
+
+
+class QuizAnswerRedisSchema(BaseModel):
+    user_id: UUID
+    company_id: UUID
+    quiz_id: UUID
+    question_id: UUID
+    answer_ids: list[UUID]
+    is_correct: bool
+    answered_at: datetime
