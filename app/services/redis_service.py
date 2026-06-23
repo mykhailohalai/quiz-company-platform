@@ -1,11 +1,12 @@
 import json
 from uuid import UUID
+import logging
 
-from fastapi import Depends
 from redis.asyncio import Redis
 
-from app.core.redis import get_redis
 from app.schemas.quiz_result import QuizAnswerRedisSchema
+
+logger = logging.getLogger(__name__)
 
 
 class RedisService:
@@ -21,8 +22,11 @@ class RedisService:
         answers: list[QuizAnswerRedisSchema],
         ttl=172800,
     ):
+        key = f"answers:{company_id}:{quiz_id}:{user_id}"
         data = json.dumps([a.model_dump(mode="json") for a in answers])
 
-        return await self.redis.set(
-            f"answers:{company_id}:{quiz_id}:{user_id}", data, ex=ttl
+        await self.redis.set(key, data, ex=ttl)
+        logger.info(
+            "Quiz answers saved to Redis: key=%s answers=%d ttl=%d",
+            key, len(answers), ttl,
         )
