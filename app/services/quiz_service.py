@@ -3,22 +3,26 @@ import logging
 from uuid import UUID
 
 from fastapi import Depends
+from redis.asyncio import Redis
 
 from app.exceptions.general_exceptions import ForbiddenException
 
 from app.exceptions.quiz_exceptions import QuizFrequencyException
 from app.models.quiz import Quiz, Question, Answer
 from app.models.quiz_result import QuizResult
-from app.schemas.quiz_result import QuizSubmitSchema
+from app.schemas.quiz_result import QuizAnswerRedisSchema, QuizSubmitSchema
 from app.utils.unit_of_work import UnitOfWork, get_uow
 from app.schemas.quiz import QuizCreateRequestSchema, QuizUpdateRequestSchema
+from app.core.redis import get_redis
+from app.services.redis_service import RedisService
 
 logger = logging.getLogger(__name__)
 
 
 class QuizService:
-    def __init__(self, uow: UnitOfWork):
+    def __init__(self, uow: UnitOfWork, redis_service: RedisService):
         self.uow = uow
+        self.redis_service = redis_service
 
     async def _check_owner_or_admin(
         self, company_id: UUID, current_user_id: UUID
@@ -126,10 +130,20 @@ class QuizService:
                 q.id: {a.id for a in q.answers if a.is_correct}
                 for q in quiz.questions
             }
-            correct_answers = sum(
-                1 for ua in data.answers
-                if set(ua.answer_ids) == correct_map.get(ua.question_id, set())
-            )
+            answered_at = datetime.now(timezone.utc)
+            redis_answers = [
+                QuizAnswerRedisSchema(
+                    user_id=user_id,
+                    company_id=company_id,
+                    quiz_id=quiz_id,
+                    question_id=ua.question_id,
+                    answer_ids=ua.answer_ids,
+                    is_correct=set(ua.answer_ids) == correct_map.get(ua.question_id, set()),
+                    answered_at=answered_at,
+                )
+                for ua in data.answers
+            ]
+            correct_answers = sum(1 for a in redis_answers if a.is_correct)
 
             result = QuizResult(
                 user_id=user_id,
@@ -140,6 +154,13 @@ class QuizService:
             )
             await self.uow.quiz_results.create(result)
             await self.uow.commit()
+
+            await self.redis_service.save_quiz_answers_redis(
+                user_id=user_id,
+                company_id=company_id,
+                quiz_id=quiz_id,
+                answers=redis_answers,
+            )
 
             return result
     
@@ -152,5 +173,8 @@ class QuizService:
             return await self.uow.quiz_results.get_average_by_system(user_id)
 
 
-def get_quiz_service(uow=Depends(get_uow)) -> QuizService:
-    return QuizService(uow)
+def get_quiz_service(
+    uow: UnitOfWork = Depends(get_uow),
+    redis: Redis = Depends(get_redis),
+) -> QuizService:
+    return QuizService(uow, RedisService(redis))
