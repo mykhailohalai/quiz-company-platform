@@ -3,7 +3,6 @@ from uuid import UUID
 from fastapi import Depends
 
 from app.exceptions.general_exceptions import ForbiddenException
-from app.exceptions.company_member_exceptions import CompanyMemberNotFoundException
 from app.models.company_member import CompanyMember, InviteStatus, Role
 from app.utils.unit_of_work import UnitOfWork, get_uow
 from app.schemas.company_member import CompanyMemberInvitationCreate, CompanyMemberRequestCreate
@@ -27,8 +26,8 @@ class CompanyMemberService:
             invitation = CompanyMember(
                 company_id=company_id,
                 user_id=data.user_id,
-                role=Role.Member,
-                status=InviteStatus.Pending_invite,
+                role=Role.MEMBER,
+                status=InviteStatus.PENDING_INVITE,
             )
             await self.uow.company_members.create(invitation)
             await self.uow.commit()
@@ -54,7 +53,7 @@ class CompanyMemberService:
             if current_user_id != invitation.user_id:
                 raise ForbiddenException()
 
-            invitation.status = InviteStatus.Active
+            invitation.status = InviteStatus.ACTIVE
             await self.uow.commit()
         return invitation
 
@@ -66,7 +65,7 @@ class CompanyMemberService:
             if current_user_id != invitation.user_id:
                 raise ForbiddenException()
 
-            invitation.status = InviteStatus.Rejected
+            invitation.status = InviteStatus.REJECTED
             await self.uow.commit()
         return invitation
 
@@ -75,8 +74,8 @@ class CompanyMemberService:
             request = CompanyMember(
                 company_id=data.company_id,
                 user_id=user_id,
-                role=Role.Member,
-                status=InviteStatus.Pending_request,
+                role=Role.MEMBER,
+                status=InviteStatus.PENDING_REQUEST,
             )
             await self.uow.company_members.create(request)
             await self.uow.commit()
@@ -98,7 +97,7 @@ class CompanyMemberService:
             if not await self.uow.companies.is_owner(current_user_id, company):
                 raise ForbiddenException()
 
-            request.status = InviteStatus.Active
+            request.status = InviteStatus.ACTIVE
             await self.uow.commit()
         return request
 
@@ -109,7 +108,7 @@ class CompanyMemberService:
             if not await self.uow.companies.is_owner(current_user_id, company):
                 raise ForbiddenException()
 
-            request.status = InviteStatus.Rejected
+            request.status = InviteStatus.REJECTED
             await self.uow.commit()
         return request
 
@@ -125,9 +124,6 @@ class CompanyMemberService:
     async def leave_company(self, company_id: UUID, current_user_id: UUID) -> None:
         async with self.uow:
             member = await self.uow.company_members.get_by_company_and_user(company_id, current_user_id)
-            if member is None:
-                raise CompanyMemberNotFoundException(current_user_id)
-
             await self.uow.company_members.delete(member.id)
             await self.uow.commit()
 

@@ -8,15 +8,15 @@ from app.core.database import Base
 from app.models.mixins import TimeStampMixin
 
 class Role(Enum):
-    Owner = auto()
-    Member = auto()
+    OWNER = auto()
+    MEMBER = auto()
 
 
 class InviteStatus(Enum):
-    Pending_invite = auto()
-    Pending_request = auto()
-    Active = auto()
-    Rejected = auto()
+    PENDING_INVITE = auto()
+    PENDING_REQUEST = auto()
+    ACTIVE = auto()
+    REJECTED = auto()
 
 class CompanyMember(TimeStampMixin, Base):
     __tablename__="company_members"

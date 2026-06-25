@@ -129,7 +129,7 @@ async def cancel_join_request_by_user(
     response_model=CompanyMemberMembershipResponse,
     status_code=status.HTTP_200_OK,
 )
-async def accept_invitation_by_user(
+async def accept_join_request_by_owner(
     join_request_id: UUID,
     user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
     user_service: UserService = Depends(get_user_service),
@@ -148,7 +148,7 @@ async def accept_invitation_by_user(
     response_model=CompanyMemberMembershipResponse,
     status_code=status.HTTP_200_OK,
 )
-async def decline_invitation_by_user(
+async def decline_join_request_by_owner(
     join_request_id: UUID,
     user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
     user_service: UserService = Depends(get_user_service),
