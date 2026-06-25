@@ -1,7 +1,11 @@
+import io
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status, Security
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.utils.formatter import Formatter
 
 from app.schemas.quiz import (
     QuizCreateRequestSchema,
@@ -152,3 +156,72 @@ async def get_average_by_system(
 ):
     current_user = await user_service.get_current_user(user_details.credentials)
     return await quiz_service.get_average_by_system(current_user.id)
+
+
+@quiz_router.get(
+    "/companies/{company_id}/users/{user_id}/results",
+    status_code=status.HTTP_200_OK
+)
+async def get_user_quiz_results(
+    company_id: UUID,
+    user_id: UUID,
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    user_service: UserService = Depends(get_user_service),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    current_user = await user_service.get_current_user(user_details.credentials)
+    return await quiz_service.get_user_results_by_admin_and_owner(current_user.id, user_id, company_id)
+
+
+@quiz_router.get(
+    "/companies/{company_id}/results",
+    status_code=status.HTTP_200_OK
+)
+async def get_everyone_quiz_results(
+    company_id: UUID,
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    user_service: UserService = Depends(get_user_service),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    current_user = await user_service.get_current_user(user_details.credentials)
+    return await quiz_service.get_all_results_by_admin_and_owner(
+        current_user.id, company_id
+    )
+
+
+@quiz_router.get(
+    "/companies/{company_id}/quizzes/{quiz_id}/results/me",
+    status_code=status.HTTP_200_OK,
+)
+async def get_my_quiz_results(
+    company_id: UUID,
+    quiz_id: UUID,
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    user_service: UserService = Depends(get_user_service),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    current_user = await user_service.get_current_user(user_details.credentials)
+    return await quiz_service.get_my_quiz_result(current_user.id, company_id, quiz_id)
+
+
+@quiz_router.get(
+    "/companies/{company_id}/quizzes/{quiz_id}/results/export",
+    status_code=status.HTTP_200_OK,
+)
+async def export_quiz_results(
+    company_id: UUID,
+    quiz_id: UUID,
+    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    user_service: UserService = Depends(get_user_service),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    current_user = await user_service.get_current_user(user_details.credentials)
+    results = await quiz_service.get_quiz_results_for_export(
+        current_user.id, company_id, quiz_id
+    )
+    csv_data = Formatter.quiz_results_to_csv(results)
+    return StreamingResponse(
+        io.StringIO(csv_data),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=quiz_{quiz_id}_results.csv"},
+    )
