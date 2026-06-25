@@ -39,3 +39,18 @@ class FakeQuizResultRepository:
         correct = sum(r.correct_answers for r in results)
         total = sum(r.total_questions for r in results)
         return round(correct / total * 100, 2) if total else 0.0
+
+    async def get_results_by_user_and_company(self, user_id: UUID, company_id: UUID) -> list[QuizResult]:
+        return [
+            r for r in self.results.values()
+            if r.user_id == user_id and r.company_id == company_id
+        ]
+
+    async def get_quiz_answers_by_company(self, company_id: UUID) -> list[QuizResult]:
+        return [r for r in self.results.values() if r.company_id == company_id]
+
+    async def get_results_by_quiz_and_company(self, quiz_id: UUID, company_id: UUID) -> list[QuizResult]:
+        return [
+            r for r in self.results.values()
+            if r.quiz_id == quiz_id and r.company_id == company_id
+        ]
