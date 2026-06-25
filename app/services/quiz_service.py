@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.exceptions.general_exceptions import ForbiddenException
 
 from app.exceptions.quiz_exceptions import QuizFrequencyException
+from app.models.company_member import Role
 from app.models.quiz import Quiz, Question, Answer
 from app.models.quiz_result import QuizResult
 from app.schemas.quiz_result import QuizAnswerRedisSchema, QuizSubmitSchema
@@ -113,26 +114,32 @@ class QuizService:
         self, company_id: UUID, user_id: UUID, quiz_id: UUID
     ) -> Quiz:
         async with self.uow:
-            member = await self.uow.company_members.get_active_member_by_company_and_user(
-                company_id, user_id
+            member = (
+                await self.uow.company_members.get_active_member_by_company_and_user(
+                    company_id, user_id
+                )
             )
             if member is None:
                 raise ForbiddenException()
             return await self.uow.quizzes.get_with_relations(company_id, quiz_id)
 
     async def submit_quiz(
-    self, company_id: UUID, quiz_id: UUID, user_id: UUID, data: QuizSubmitSchema
+        self, company_id: UUID, quiz_id: UUID, user_id: UUID, data: QuizSubmitSchema
     ) -> QuizResult:
         async with self.uow:
-            member = await self.uow.company_members.get_active_member_by_company_and_user(
-                company_id, user_id
+            member = (
+                await self.uow.company_members.get_active_member_by_company_and_user(
+                    company_id, user_id
+                )
             )
             if member is None:
                 raise ForbiddenException()
 
             quiz = await self.uow.quizzes.get_with_relations(company_id, quiz_id)
 
-            last_attempt = await self.uow.quiz_results.get_last_attempt(quiz_id, user_id)
+            last_attempt = await self.uow.quiz_results.get_last_attempt(
+                quiz_id, user_id
+            )
             if last_attempt:
                 created_at = last_attempt.created_at
                 if created_at.tzinfo is None:
@@ -142,8 +149,7 @@ class QuizService:
                     raise QuizFrequencyException()
 
             correct_map = {
-                q.id: {a.id for a in q.answers if a.is_correct}
-                for q in quiz.questions
+                q.id: {a.id for a in q.answers if a.is_correct} for q in quiz.questions
             }
             answered_at = datetime.now(timezone.utc)
             redis_answers = [
@@ -153,7 +159,8 @@ class QuizService:
                     quiz_id=quiz_id,
                     question_id=ua.question_id,
                     answer_ids=ua.answer_ids,
-                    is_correct=set(ua.answer_ids) == correct_map.get(ua.question_id, set()),
+                    is_correct=set(ua.answer_ids)
+                    == correct_map.get(ua.question_id, set()),
                     answered_at=answered_at,
                 )
                 for ua in data.answers
@@ -178,15 +185,54 @@ class QuizService:
             )
 
             return result
-    
+
     async def get_average_by_company(self, user_id: UUID, company_id: UUID) -> float:
         async with self.uow:
-            return await self.uow.quiz_results.get_average_by_company(user_id, company_id)
+            return await self.uow.quiz_results.get_average_by_company(
+                user_id, company_id
+            )
 
     async def get_average_by_system(self, user_id: UUID) -> float:
         async with self.uow:
             return await self.uow.quiz_results.get_average_by_system(user_id)
 
+    async def get_my_quiz_result(self, user_id: UUID, company_id: UUID, quiz_id: UUID):
+        answers = await self.redis_service.get_quiz_answers_redis(
+            user_id, company_id, quiz_id
+        )
+        if answers is None:
+            async with self.uow:
+                answers = await self.uow.quiz_results.get_last_attempt(quiz_id, user_id)
+
+        return answers
+
+    async def get_user_results_by_admin_and_owner(
+        self, current_user_id: UUID, target_user_id: UUID, company_id: UUID
+    ):
+        async with self.uow:
+            await self._check_owner_or_admin(company_id, current_user_id)
+
+            return await self.uow.quiz_results.get_results_by_user_and_company(
+                target_user_id, company_id
+            )
+
+    async def get_all_results_by_admin_and_owner(
+        self, current_user_id: UUID, company_id: UUID
+    ):
+        async with self.uow:
+            await self._check_owner_or_admin(company_id, current_user_id)
+
+            return await self.uow.quiz_results.get_quiz_answers_by_company(company_id)
+
+    async def get_quiz_results_for_export(
+    self, current_user_id: UUID, company_id: UUID, quiz_id: UUID
+    ):
+        async with self.uow:
+            await self._check_owner_or_admin(company_id, current_user_id)
+            return await self.uow.quiz_results.get_results_by_quiz_and_company(
+                quiz_id, company_id
+            )
+ 
 
 def get_quiz_service(
     uow: UnitOfWork = Depends(get_uow),
