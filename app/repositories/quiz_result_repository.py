@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 
 from app.models.quiz_result import QuizResult
 from app.repositories.base_repository import BaseRepository
@@ -50,3 +50,34 @@ class QuizResultRepository(BaseRepository[QuizResult, QuizResultResponseSchema])
         if not total:
             return 0.0
         return round(correct / total * 100, 2)
+
+    async def get_quiz_answers_by_company(self, company_id: UUID):
+        quiz_results = await self.session.execute(
+            select(QuizResult).where(QuizResult.company_id == company_id)
+        )
+
+        return quiz_results.scalars().all()
+
+    async def get_results_by_user_and_company(self, user_id: UUID, company_id: UUID):
+        quiz_results = await self.session.execute(
+            select(QuizResult).where(
+                and_(
+                    QuizResult.company_id == company_id,
+                    QuizResult.user_id == user_id
+                )
+            )
+        )
+
+        return quiz_results.scalars().all()
+
+    async def get_results_by_quiz_and_company(self, quiz_id: UUID, company_id: UUID):
+        results = await self.session.execute(
+            select(QuizResult).where(
+                and_(
+                    QuizResult.quiz_id == quiz_id,
+                    QuizResult.company_id == company_id
+                )
+            )
+        )
+
+        return results.scalars().all()
