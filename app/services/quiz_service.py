@@ -6,7 +6,7 @@ from fastapi import Depends
 from app.exceptions.general_exceptions import ForbiddenException
 
 from app.models.company_member import Role
-from app.models.quiz import Quiz, Question, Answer
+from app.models.quiz import Quiz
 from app.utils.unit_of_work import UnitOfWork, get_uow
 from app.schemas.quiz import QuizCreateRequestSchema, QuizUpdateRequestSchema
 
@@ -41,25 +41,7 @@ class QuizService:
                 frequency=data.frequency,
                 company_id=company_id,
             )
-            await self.uow.quizzes.create(quiz)
-
-            for q_data in data.questions:
-                question = Question(
-                    title=q_data.title,
-                    quiz_id=quiz.id,
-                    question_type=q_data.question_type,
-                )
-                self.uow.session.add(question)
-                await self.uow.session.flush()
-
-                for a_data in q_data.answers:
-                    answer = Answer(
-                        text=a_data.text,
-                        is_correct=a_data.is_correct,
-                        question_id=question.id,
-                    )
-                    self.uow.session.add(answer)
-
+            await self.uow.quizzes.create_with_questions(quiz, data.questions)
             await self.uow.commit()
             quiz = await self.uow.quizzes.get_with_relations(quiz.id)
             logger.info("Quiz created: id=%s company_id=%s", quiz.id, company_id)
