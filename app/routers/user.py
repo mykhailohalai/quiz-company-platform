@@ -11,8 +11,8 @@ from app.schemas.user import (
 from fastapi import APIRouter, Depends, Query, status
 
 from app.models.user import User
-from app.services.user_service import UserService, get_user_service
-from app.dependencies import get_current_user_dep
+from app.services.user_service import UserService
+from app.dependencies import get_current_user_dep, get_user_service
 
 user_router = APIRouter()
 

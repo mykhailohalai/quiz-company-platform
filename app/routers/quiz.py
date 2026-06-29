@@ -1,16 +1,16 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status, Security
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Depends, Query, status
 
+from app.models.user import User
 from app.schemas.quiz import (
     QuizCreateRequestSchema,
     QuizUpdateRequestSchema,
     QuizResponseSchema,
     PaginatedQuizResponseSchema,
 )
-from app.services.quiz_service import QuizService, get_quiz_service
-from app.services.user_service import UserService, get_user_service
+from app.services.quiz_service import QuizService
+from app.dependencies import get_current_user_dep, get_quiz_service
 
 quiz_router = APIRouter()
 
@@ -23,11 +23,9 @@ quiz_router = APIRouter()
 async def create_quiz(
     company_id: UUID,
     data: QuizCreateRequestSchema,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     quiz = await quiz_service.create_quiz(company_id, current_user.id, data)
     return QuizResponseSchema.model_validate(quiz)
 
@@ -41,11 +39,9 @@ async def update_quiz(
     company_id: UUID,
     quiz_id: UUID,
     data: QuizUpdateRequestSchema,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     quiz = await quiz_service.update_quiz(quiz_id, company_id, current_user.id, data)
     return QuizResponseSchema.model_validate(quiz)
 
@@ -57,11 +53,9 @@ async def update_quiz(
 async def delete_quiz(
     company_id: UUID,
     quiz_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     await quiz_service.delete_quiz(quiz_id, company_id, current_user.id)
 
 

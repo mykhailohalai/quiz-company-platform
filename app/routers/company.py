@@ -4,8 +4,8 @@ from fastapi import APIRouter, Query, status, Depends
 
 from app.models.user import User
 from app.schemas.company import CompanyDetailResponseSchema, CompanyUpdateRequestSchema, CompanyCreateRequestSchema, PaginatedCompanyDetailResponseSchema
-from app.services.company_service import CompanyService, get_company_service
-from app.dependencies import get_current_user_dep
+from app.services.company_service import CompanyService
+from app.dependencies import get_current_user_dep, get_company_service
 
 company_router = APIRouter()
 

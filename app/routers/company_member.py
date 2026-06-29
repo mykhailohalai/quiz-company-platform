@@ -9,11 +9,8 @@ from app.schemas.company_member import (
     CompanyMemberMembershipResponse,
     CompanyMemberRequestCreate,
 )
-from app.services.company_member_service import (
-    CompanyMemberService,
-    get_company_member_service,
-)
-from app.dependencies import get_current_user_dep
+from app.services.company_member_service import CompanyMemberService
+from app.dependencies import get_current_user_dep, get_company_member_service
 
 company_member_router = APIRouter()
 
