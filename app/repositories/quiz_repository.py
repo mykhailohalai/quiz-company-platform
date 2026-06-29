@@ -39,6 +39,30 @@ class QuizRepository(BaseRepository[Quiz, QuizUpdateRequestSchema]):
                     question_id=question.id,
                 ))
 
+    async def update_questions(
+        self, quiz_id: UUID, questions_data: list[QuestionCreateRequestSchema]
+    ) -> None:
+        quiz = await self.get_with_relations(quiz_id)
+        for question in quiz.questions:
+            await self.session.delete(question)
+        await self.session.flush()
+
+        for q_data in questions_data:
+            question = Question(
+                title=q_data.title,
+                quiz_id=quiz_id,
+                question_type=q_data.question_type,
+            )
+            self.session.add(question)
+            await self.session.flush()
+
+            for a_data in q_data.answers:
+                self.session.add(Answer(
+                    text=a_data.text,
+                    is_correct=a_data.is_correct,
+                    question_id=question.id,
+                ))
+
     async def get_with_relations(self, quiz_id: UUID) -> Quiz:
         result = await self.session.execute(
             select(Quiz)
