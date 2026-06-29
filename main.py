@@ -27,7 +27,9 @@ from app.exceptions.company_member_exceptions import (
 from app.exceptions.quiz_exceptions import (
     QuizNotFoundException,
     QuizAlreadyExistsException,
-    QuizFrequencyException
+    QuizFrequencyException,
+    QuizResultNotFoundException,
+    QuizResultAlreadyExistsException,
 )
 
 app = FastAPI(title=settings.app_name)
@@ -67,6 +69,8 @@ _HTTP_EXCEPTION_MAP: dict[type[Exception], int] = {
     QuizNotFoundException: status.HTTP_404_NOT_FOUND,
     QuizAlreadyExistsException: status.HTTP_409_CONFLICT,
     QuizFrequencyException: status.HTTP_403_FORBIDDEN,
+    QuizResultNotFoundException: status.HTTP_404_NOT_FOUND,
+    QuizResultAlreadyExistsException: status.HTTP_409_CONFLICT,
     ForbiddenException: status.HTTP_403_FORBIDDEN,
 }
 

@@ -24,7 +24,7 @@ def make_company(**kwargs):
 def make_member(**kwargs):
     defaults = dict(
         id=uuid4(), company_id=uuid4(), user_id=uuid4(),
-        role=Role.Member, status=InviteStatus.Active,
+        role=Role.MEMBER, status=InviteStatus.ACTIVE,
     )
     defaults.update(kwargs)
     return CompanyMember(**defaults)

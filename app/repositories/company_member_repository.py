@@ -38,7 +38,7 @@ class CompanyMemberRepository(
                 and_(
                     CompanyMember.company_id == company_id,
                     CompanyMember.user_id == user_id,
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                 )
             )
         )
@@ -50,7 +50,7 @@ class CompanyMemberRepository(
             .select_from(CompanyMember)
             .where(
                 and_(
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                     CompanyMember.company_id == company_id,
                 )
             )
@@ -60,7 +60,7 @@ class CompanyMemberRepository(
             select(CompanyMember)
             .where(
                 and_(
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                     CompanyMember.company_id == company_id,
                 )
             )
@@ -76,9 +76,9 @@ class CompanyMemberRepository(
             .select_from(CompanyMember)
             .where(
                 and_(
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                     CompanyMember.company_id == company_id,
-                    CompanyMember.role == Role.Admin,
+                    CompanyMember.role == Role.ADMIN,
                 )
             )
         )
@@ -87,9 +87,9 @@ class CompanyMemberRepository(
             select(CompanyMember)
             .where(
                 and_(
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                     CompanyMember.company_id == company_id,
-                    CompanyMember.role == Role.Admin,
+                    CompanyMember.role == Role.ADMIN,
                 )
             )
             .offset(skip)
@@ -102,9 +102,9 @@ class CompanyMemberRepository(
         admin = await self.session.execute(
             select(CompanyMember).where(
                 and_(
-                    CompanyMember.role == Role.Admin,
+                    CompanyMember.role == Role.ADMIN,
                     CompanyMember.user_id == admin_id,
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                     CompanyMember.company_id == company_id,
                 )
             )
@@ -117,7 +117,7 @@ class CompanyMemberRepository(
         invatations = await self.session.execute(
             select(CompanyMember).where(
                 and_(
-                    CompanyMember.status == InviteStatus.Pending_invite,
+                    CompanyMember.status == InviteStatus.PENDING_INVITE,
                     CompanyMember.user_id == user_id,
                 )
             )
@@ -129,7 +129,7 @@ class CompanyMemberRepository(
         self, company_id: UUID, skip: int, limit: int
     ) -> tuple[list[CompanyMember], int]:
         condition = and_(
-            CompanyMember.status == InviteStatus.Pending_request,
+            CompanyMember.status == InviteStatus.PENDING_REQUEST,
             CompanyMember.company_id == company_id,
         )
         total = await self.session.scalar(
@@ -144,7 +144,7 @@ class CompanyMemberRepository(
         self, company_id: UUID, skip: int, limit: int
     ) -> tuple[list[CompanyMember], int]:
         condition = and_(
-            CompanyMember.status == InviteStatus.Pending_invite,
+            CompanyMember.status == InviteStatus.PENDING_INVITE,
             CompanyMember.company_id == company_id,
         )
         total = await self.session.scalar(
@@ -159,7 +159,7 @@ class CompanyMemberRepository(
         self, user_id: UUID, skip: int, limit: int
     ) -> tuple[list[CompanyMember], int]:
         condition = and_(
-            CompanyMember.status == InviteStatus.Pending_invite,
+            CompanyMember.status == InviteStatus.PENDING_INVITE,
             CompanyMember.user_id == user_id,
         )
         total = await self.session.scalar(
@@ -174,7 +174,7 @@ class CompanyMemberRepository(
         self, user_id: UUID, skip: int, limit: int
     ) -> tuple[list[CompanyMember], int]:
         condition = and_(
-            CompanyMember.status == InviteStatus.Pending_request,
+            CompanyMember.status == InviteStatus.PENDING_REQUEST,
             CompanyMember.user_id == user_id,
         )
         total = await self.session.scalar(

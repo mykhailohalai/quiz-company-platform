@@ -32,8 +32,8 @@ def make_member(**kwargs):
         id=uuid4(),
         company_id=uuid4(),
         user_id=uuid4(),
-        role=Role.Member,
-        status=InviteStatus.Active,
+        role=Role.MEMBER,
+        status=InviteStatus.ACTIVE,
     )
     defaults.update(kwargs)
     return CompanyMember(**defaults)
@@ -96,7 +96,7 @@ async def test_create_quiz_by_owner(quiz_service, uow):
 async def test_create_quiz_by_admin(quiz_service, uow):
     company = make_company()
     admin_id = uuid4()
-    admin = make_member(company_id=company.id, user_id=admin_id, role=Role.Admin, status=InviteStatus.Active)
+    admin = make_member(company_id=company.id, user_id=admin_id, role=Role.ADMIN, status=InviteStatus.ACTIVE)
     uow.companies.companies[company.id] = company
     uow.company_members.members[admin.id] = admin
 

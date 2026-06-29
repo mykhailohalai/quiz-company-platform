@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import and_, func, select
 
+from app.exceptions.quiz_exceptions import QuizResultAlreadyExistsException, QuizResultNotFoundException
 from app.models.quiz_result import QuizResult
 from app.repositories.base_repository import BaseRepository
 from app.schemas.quiz_result import QuizResultResponseSchema
@@ -9,7 +10,7 @@ from app.schemas.quiz_result import QuizResultResponseSchema
 
 class QuizResultRepository(BaseRepository[QuizResult, QuizResultResponseSchema]):
     model = QuizResult
-    not_found_exception = Exception
+    not_found_exception = QuizResultNotFoundException
     already_exists_exception = Exception
 
     async def get_last_attempt(self, quiz_id: UUID, user_id: UUID) -> QuizResult | None:
