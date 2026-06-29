@@ -101,7 +101,3 @@ class QuizService:
     ) -> tuple[list[Quiz], int]:
         async with self.uow:
             return await self.uow.quizzes.get_by_company(company_id, skip, limit)
-
-
-def get_quiz_service(uow=Depends(get_uow)) -> QuizService:
-    return QuizService(uow)
