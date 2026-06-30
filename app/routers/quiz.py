@@ -1,4 +1,5 @@
 import io
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -14,8 +15,13 @@ from app.schemas.quiz import (
 )
 from app.schemas.quiz_result import (
     AverageScoreResponseSchema,
+    CompanyMemberLastAttemptSchema,
+    QuizAverageScoreSchema,
+    QuizLastAttemptSchema,
     QuizResultResponseSchema,
     QuizSubmitSchema,
+    WeeklyCompanyScoreSchema,
+    WeeklyUserQuizScoreSchema,
 )
 from app.services.quiz_service import QuizService
 from app.utils.formatter import Formatter
@@ -205,3 +211,73 @@ async def export_quiz_results(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=quiz_{quiz_id}_results.csv"},
     )
+
+
+@quiz_router.get(
+    "/users/me/quizzes/scores",
+    response_model=list[QuizAverageScoreSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def get_my_quiz_average_scores(
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    return await quiz_service.get_average_score_by_user(
+        current_user.id, date_from, date_to
+    )
+
+
+@quiz_router.get(
+    "/users/me/quizzes/last-attempts",
+    response_model=list[QuizLastAttemptSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def get_my_quizzes_last_attempts(
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    return await quiz_service.get_quizzes_last_attempt_by_user(current_user.id)
+
+
+@quiz_router.get(
+    "/companies/{company_id}/results/week",
+    response_model=list[WeeklyCompanyScoreSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def get_company_weekly_results(
+    company_id: UUID,
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    return await quiz_service.get_weekly_results_by_company(company_id, current_user.id)
+
+
+@quiz_router.get(
+    "/companies/{company_id}/users/{user_id}/results/week",
+    response_model=list[WeeklyUserQuizScoreSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def get_user_weekly_results_by_company(
+    company_id: UUID,
+    user_id: UUID,
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    return await quiz_service.get_weekly_results_by_user_and_company(
+        company_id, user_id, current_user.id
+    )
+
+
+@quiz_router.get(
+    "/companies/{company_id}/users/last-attempts",
+    response_model=list[CompanyMemberLastAttemptSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def get_company_users_last_attempts(
+    company_id: UUID,
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    return await quiz_service.get_last_attempts_by_company(company_id, current_user.id)
