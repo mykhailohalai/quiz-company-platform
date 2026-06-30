@@ -12,7 +12,7 @@ class FakeUnitOfWork:
         self.companies = FakeCompanyRepository(companies)
         self.company_members = FakeCompanyMemberRepository(company_members)
         self.quizzes = FakeQuizRepository(quizzes)
-        self.quiz_results = FakeQuizResultRepository(quiz_results)
+        self.quiz_results = FakeQuizResultRepository(quiz_results, self.company_members)
         self.session = FakeSession()
         self.committed = False
 

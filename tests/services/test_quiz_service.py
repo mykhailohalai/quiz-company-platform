@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -7,6 +8,7 @@ from app.exceptions.quiz_exceptions import QuizNotFoundException
 from app.models.company import Company, CompanyVisibility
 from app.models.company_member import CompanyMember, InviteStatus, Role
 from app.models.quiz import Quiz, QuestionType
+from app.models.quiz_result import QuizResult
 from app.schemas.quiz import (
     QuizCreateRequestSchema,
     QuizUpdateRequestSchema,
@@ -77,6 +79,20 @@ def make_quiz_data(**kwargs):
     )
     defaults.update(kwargs)
     return QuizCreateRequestSchema(**defaults)
+
+
+def make_quiz_result(**kwargs):
+    defaults = dict(
+        id=uuid4(),
+        user_id=uuid4(),
+        company_id=uuid4(),
+        quiz_id=uuid4(),
+        correct_answers=5,
+        total_questions=10,
+        created_at=datetime.now(timezone.utc),
+    )
+    defaults.update(kwargs)
+    return QuizResult(**defaults)
 
 
 # --- create_quiz ---
@@ -220,3 +236,219 @@ async def test_get_quizzes_returns_company_quizzes(quiz_service, uow):
 
     assert total == 2
     assert all(q.company_id == company_id for q in quizzes)
+
+
+# --- get_average_by_system / get_average_by_company ---
+
+async def test_get_average_by_system_returns_weighted_average_across_companies(quiz_service, uow):
+    user_id = uuid4()
+    r1 = make_quiz_result(user_id=user_id, correct_answers=3, total_questions=10)
+    r2 = make_quiz_result(user_id=user_id, correct_answers=9, total_questions=10)
+    other_user_result = make_quiz_result(correct_answers=1, total_questions=1)
+    uow.quiz_results.results[r1.id] = r1
+    uow.quiz_results.results[r2.id] = r2
+    uow.quiz_results.results[other_user_result.id] = other_user_result
+
+    average_score = await quiz_service.get_average_by_system(user_id)
+
+    assert average_score == 60.0
+
+
+async def test_get_average_by_system_returns_zero_when_no_results(quiz_service, uow):
+    average_score = await quiz_service.get_average_by_system(uuid4())
+
+    assert average_score == 0.0
+
+
+async def test_get_average_by_company_returns_average_for_company_only(quiz_service, uow):
+    user_id = uuid4()
+    company_id = uuid4()
+    in_company = make_quiz_result(
+        user_id=user_id, company_id=company_id, correct_answers=4, total_questions=10
+    )
+    other_company = make_quiz_result(
+        user_id=user_id, correct_answers=0, total_questions=10
+    )
+    uow.quiz_results.results[in_company.id] = in_company
+    uow.quiz_results.results[other_company.id] = other_company
+
+    average_score = await quiz_service.get_average_by_company(user_id, company_id)
+
+    assert average_score == 40.0
+
+
+async def test_get_average_by_company_returns_zero_when_no_results(quiz_service, uow):
+    average_score = await quiz_service.get_average_by_company(uuid4(), uuid4())
+
+    assert average_score == 0.0
+
+
+# --- get_average_score_by_user ---
+
+async def test_get_average_score_by_user_returns_per_quiz_average(quiz_service, uow):
+    user_id = uuid4()
+    quiz_id = uuid4()
+    r1 = make_quiz_result(user_id=user_id, quiz_id=quiz_id, correct_answers=3, total_questions=10)
+    r2 = make_quiz_result(user_id=user_id, quiz_id=quiz_id, correct_answers=9, total_questions=10)
+    other_user_result = make_quiz_result(correct_answers=1, total_questions=1)
+    uow.quiz_results.results[r1.id] = r1
+    uow.quiz_results.results[r2.id] = r2
+    uow.quiz_results.results[other_user_result.id] = other_user_result
+
+    result = await quiz_service.get_average_score_by_user(user_id)
+
+    assert len(result) == 1
+    assert result[0].quiz_id == quiz_id
+    assert result[0].user_id == user_id
+    assert result[0].average_score == 60.0
+
+
+async def test_get_average_score_by_user_filters_by_date_range(quiz_service, uow):
+    user_id = uuid4()
+    quiz_id = uuid4()
+    old = make_quiz_result(
+        user_id=user_id,
+        quiz_id=quiz_id,
+        correct_answers=0,
+        total_questions=10,
+        created_at=datetime.now(timezone.utc) - timedelta(days=30),
+    )
+    recent = make_quiz_result(
+        user_id=user_id, quiz_id=quiz_id, correct_answers=5, total_questions=10
+    )
+    uow.quiz_results.results[old.id] = old
+    uow.quiz_results.results[recent.id] = recent
+
+    result = await quiz_service.get_average_score_by_user(
+        user_id, date_from=(datetime.now(timezone.utc) - timedelta(days=1)).date()
+    )
+
+    assert len(result) == 1
+    assert result[0].average_score == 50.0
+
+
+# --- get_quizzes_last_attempt_by_user ---
+
+async def test_get_quizzes_last_attempt_by_user_returns_latest_per_quiz(quiz_service, uow):
+    user_id = uuid4()
+    quiz_id = uuid4()
+    earlier = make_quiz_result(
+        user_id=user_id,
+        quiz_id=quiz_id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=5),
+    )
+    latest = make_quiz_result(user_id=user_id, quiz_id=quiz_id)
+    uow.quiz_results.results[earlier.id] = earlier
+    uow.quiz_results.results[latest.id] = latest
+
+    result = await quiz_service.get_quizzes_last_attempt_by_user(user_id)
+
+    assert len(result) == 1
+    assert result[0].quiz_id == quiz_id
+    assert result[0].last_attempt_at == latest.created_at
+
+
+# --- get_weekly_results_by_company ---
+
+async def test_get_weekly_results_by_company_by_owner(quiz_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    member_user_id = uuid4()
+    r1 = make_quiz_result(
+        company_id=company.id, user_id=member_user_id, correct_answers=4, total_questions=10
+    )
+    r2 = make_quiz_result(
+        company_id=company.id, user_id=member_user_id, correct_answers=8, total_questions=10
+    )
+    uow.companies.companies[company.id] = company
+    uow.quiz_results.results[r1.id] = r1
+    uow.quiz_results.results[r2.id] = r2
+
+    result = await quiz_service.get_weekly_results_by_company(company.id, owner_id)
+
+    assert len(result) == 1
+    assert result[0].user_id == member_user_id
+    assert result[0].average_score == 60.0
+
+
+async def test_get_weekly_results_by_company_raises_when_not_owner_or_admin(quiz_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(ForbiddenException):
+        await quiz_service.get_weekly_results_by_company(company.id, uuid4())
+
+
+# --- get_weekly_results_by_user_and_company ---
+
+async def test_get_weekly_results_by_user_and_company_by_admin(quiz_service, uow):
+    company = make_company()
+    admin_id = uuid4()
+    admin = make_member(
+        company_id=company.id, user_id=admin_id, role=Role.ADMIN, status=InviteStatus.ACTIVE
+    )
+    target_user_id = uuid4()
+    quiz_id = uuid4()
+    r1 = make_quiz_result(
+        company_id=company.id,
+        user_id=target_user_id,
+        quiz_id=quiz_id,
+        correct_answers=2,
+        total_questions=10,
+    )
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[admin.id] = admin
+    uow.quiz_results.results[r1.id] = r1
+
+    result = await quiz_service.get_weekly_results_by_user_and_company(
+        company.id, target_user_id, admin_id
+    )
+
+    assert len(result) == 1
+    assert result[0].quiz_id == quiz_id
+    assert result[0].user_id == target_user_id
+    assert result[0].average_score == 20.0
+
+
+async def test_get_weekly_results_by_user_and_company_raises_when_not_owner_or_admin(quiz_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(ForbiddenException):
+        await quiz_service.get_weekly_results_by_user_and_company(
+            company.id, uuid4(), uuid4()
+        )
+
+
+# --- get_last_attempts_by_company ---
+
+async def test_get_last_attempts_by_company_includes_members_without_attempts(quiz_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    active_user_with_attempt = uuid4()
+    active_user_without_attempt = uuid4()
+    member1 = make_member(
+        company_id=company.id, user_id=active_user_with_attempt, status=InviteStatus.ACTIVE
+    )
+    member2 = make_member(
+        company_id=company.id, user_id=active_user_without_attempt, status=InviteStatus.ACTIVE
+    )
+    result_record = make_quiz_result(company_id=company.id, user_id=active_user_with_attempt)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[member1.id] = member1
+    uow.company_members.members[member2.id] = member2
+    uow.quiz_results.results[result_record.id] = result_record
+
+    result = await quiz_service.get_last_attempts_by_company(company.id, owner_id)
+
+    by_user = {item.user_id: item.last_attempt_at for item in result}
+    assert by_user[active_user_with_attempt] == result_record.created_at
+    assert by_user[active_user_without_attempt] is None
+
+
+async def test_get_last_attempts_by_company_raises_when_not_owner_or_admin(quiz_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(ForbiddenException):
+        await quiz_service.get_last_attempts_by_company(company.id, uuid4())
