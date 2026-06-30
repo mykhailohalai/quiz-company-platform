@@ -32,6 +32,10 @@ class QuizResultResponseSchema(BaseModel):
         return round(self.correct_answers / self.total_questions * 100, 2)
 
 
+class AverageScoreResponseSchema(BaseModel):
+    average_score: float
+
+
 class QuizAnswerRedisSchema(BaseModel):
     user_id: UUID
     company_id: UUID

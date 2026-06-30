@@ -2,19 +2,14 @@ from datetime import datetime, timezone
 import logging
 from uuid import UUID
 
-from fastapi import Depends
-from redis.asyncio import Redis
-
 from app.exceptions.general_exceptions import ForbiddenException
 
 from app.exceptions.quiz_exceptions import QuizFrequencyException
-from app.models.company_member import Role
 from app.models.quiz import Quiz, Question, Answer
 from app.models.quiz_result import QuizResult
 from app.schemas.quiz_result import QuizAnswerRedisSchema, QuizSubmitSchema
-from app.utils.unit_of_work import UnitOfWork, get_uow
+from app.utils.unit_of_work import UnitOfWork
 from app.schemas.quiz import QuizCreateRequestSchema, QuizUpdateRequestSchema
-from app.core.redis import get_redis
 from app.services.redis_service import RedisService
 
 logger = logging.getLogger(__name__)
@@ -49,25 +44,7 @@ class QuizService:
                 frequency=data.frequency,
                 company_id=company_id,
             )
-            await self.uow.quizzes.create(quiz)
-
-            for q_data in data.questions:
-                question = Question(
-                    title=q_data.title,
-                    quiz_id=quiz.id,
-                    question_type=q_data.question_type,
-                )
-                self.uow.session.add(question)
-                await self.uow.session.flush()
-
-                for a_data in q_data.answers:
-                    answer = Answer(
-                        text=a_data.text,
-                        is_correct=a_data.is_correct,
-                        question_id=question.id,
-                    )
-                    self.uow.session.add(answer)
-
+            await self.uow.quizzes.create_with_questions(quiz, data.questions)
             await self.uow.commit()
             quiz = await self.uow.quizzes.get_with_relations(company_id, quiz.id)
             logger.info("Quiz created: id=%s company_id=%s", quiz.id, company_id)
@@ -90,8 +67,11 @@ class QuizService:
                 quiz.description = data.description
             if data.frequency is not None:
                 quiz.frequency = data.frequency
+            if data.questions is not None:
+                await self.uow.quizzes.update_questions(company_id, quiz_id, data.questions)
 
             await self.uow.commit()
+            quiz = await self.uow.quizzes.get_with_relations(company_id, quiz_id)
             logger.info("Quiz updated: id=%s", quiz_id)
             return quiz
 
@@ -232,10 +212,3 @@ class QuizService:
             return await self.uow.quiz_results.get_results_by_quiz_and_company(
                 quiz_id, company_id
             )
- 
-
-def get_quiz_service(
-    uow: UnitOfWork = Depends(get_uow),
-    redis: Redis = Depends(get_redis),
-) -> QuizService:
-    return QuizService(uow, RedisService(redis))
