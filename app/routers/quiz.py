@@ -10,6 +10,7 @@ from app.schemas.quiz import (
     PaginatedQuizResponseSchema,
 )
 from app.schemas.quiz_result import (
+    AverageScoreResponseSchema,
     QuizResultResponseSchema,
     QuizSubmitSchema
 )
@@ -91,7 +92,7 @@ async def get_quizzes(
 
 
 @quiz_router.get(
-    "/companies/{company_id}/quizzes/{quiz_id}/take",
+    "/companies/{company_id}/quizzes/{quiz_id}",
     response_model=QuizResponseSchema,
     status_code=status.HTTP_200_OK,
 )
@@ -108,7 +109,7 @@ async def get_quiz_for_member(
 
 
 @quiz_router.post(
-    "/companies/{company_id}/quizzes/{quiz_id}/submit",
+    "/companies/{company_id}/quizzes/{quiz_id}/results",
     response_model=QuizResultResponseSchema,
     status_code=status.HTTP_201_CREATED,
 )
@@ -126,8 +127,8 @@ async def submit_quiz(
 
 
 @quiz_router.get(
-    "/companies/{company_id}/users/me/average",
-    response_model=float,
+    "/companies/{company_id}/users/me/score",
+    response_model=AverageScoreResponseSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_average_by_company(
@@ -137,12 +138,13 @@ async def get_average_by_company(
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
     current_user = await user_service.get_current_user(user_details.credentials)
-    return await quiz_service.get_average_by_company(current_user.id, company_id)
+    average_score = await quiz_service.get_average_by_company(current_user.id, company_id)
+    return AverageScoreResponseSchema(average_score=average_score)
 
 
 @quiz_router.get(
-    "/users/me/average",
-    response_model=float,
+    "/users/me/score",
+    response_model=AverageScoreResponseSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_average_by_system(
@@ -151,4 +153,5 @@ async def get_average_by_system(
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
     current_user = await user_service.get_current_user(user_details.credentials)
-    return await quiz_service.get_average_by_system(current_user.id)
+    average_score = await quiz_service.get_average_by_system(current_user.id)
+    return AverageScoreResponseSchema(average_score=average_score)
