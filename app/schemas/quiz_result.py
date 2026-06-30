@@ -30,3 +30,7 @@ class QuizResultResponseSchema(BaseModel):
         if self.total_questions == 0:
             return 0.0
         return round(self.correct_answers / self.total_questions * 100, 2)
+
+
+class AverageScoreResponseSchema(BaseModel):
+    average_score: float
