@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import logging
 from uuid import UUID
 
@@ -7,7 +7,15 @@ from app.exceptions.general_exceptions import ForbiddenException
 from app.exceptions.quiz_exceptions import QuizFrequencyException
 from app.models.quiz import Quiz, Question, Answer
 from app.models.quiz_result import QuizResult
-from app.schemas.quiz_result import QuizAnswerRedisSchema, QuizSubmitSchema
+from app.schemas.quiz_result import (
+    CompanyMemberLastAttemptSchema,
+    QuizAnswerRedisSchema,
+    QuizAverageScoreSchema,
+    QuizLastAttemptSchema,
+    QuizSubmitSchema,
+    WeeklyCompanyScoreSchema,
+    WeeklyUserQuizScoreSchema,
+)
 from app.utils.unit_of_work import UnitOfWork
 from app.schemas.quiz import QuizCreateRequestSchema, QuizUpdateRequestSchema
 from app.services.redis_service import RedisService
@@ -68,7 +76,9 @@ class QuizService:
             if data.frequency is not None:
                 quiz.frequency = data.frequency
             if data.questions is not None:
-                await self.uow.quizzes.update_questions(company_id, quiz_id, data.questions)
+                await self.uow.quizzes.update_questions(
+                    company_id, quiz_id, data.questions
+                )
 
             await self.uow.commit()
             quiz = await self.uow.quizzes.get_with_relations(company_id, quiz_id)
@@ -205,10 +215,98 @@ class QuizService:
             return await self.uow.quiz_results.get_quiz_answers_by_company(company_id)
 
     async def get_quiz_results_for_export(
-    self, current_user_id: UUID, company_id: UUID, quiz_id: UUID
+        self, current_user_id: UUID, company_id: UUID, quiz_id: UUID
     ):
         async with self.uow:
             await self._check_owner_or_admin(company_id, current_user_id)
             return await self.uow.quiz_results.get_results_by_quiz_and_company(
                 quiz_id, company_id
             )
+
+    async def get_average_score_by_user(
+        self,
+        user_id: UUID,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ) -> list[QuizAverageScoreSchema]:
+        async with self.uow:
+            results = await self.uow.quiz_results.get_average_for_all_quizzes_by_user(
+                user_id, date_from, date_to
+            )
+
+            return [
+                QuizAverageScoreSchema(
+                    quiz_id=quiz_id,
+                    user_id=user_id,
+                    average_score=round(correct / total * 100, 2) if total else 0.0,
+                )
+                for quiz_id, user_id, correct, total in results
+            ]
+
+    async def get_quizzes_last_attempt_by_user(
+        self, user_id: UUID
+    ) -> list[QuizLastAttemptSchema]:
+        async with self.uow:
+            last_attempts = (
+                await self.uow.quiz_results.get_last_attempt_for_all_quizzes_by_user(
+                    user_id
+                )
+            )
+
+            return [
+                QuizLastAttemptSchema(
+                    quiz_id=quiz_id, user_id=user_id, last_attempt_at=last_attempt_at
+                )
+                for quiz_id, user_id, last_attempt_at in last_attempts
+            ]
+
+    async def get_weekly_results_by_company(
+        self, company_id: UUID, current_user_id: UUID
+    ) -> list[WeeklyCompanyScoreSchema]:
+        async with self.uow:
+            await self._check_owner_or_admin(company_id, current_user_id)
+            results = await self.uow.quiz_results.get_weekly_results_by_company(company_id)
+
+            return [
+                WeeklyCompanyScoreSchema(
+                    user_id=user_id,
+                    week_start=week_start,
+                    average_score=round(correct / total * 100, 2) if total else 0.0,
+                )
+                for user_id, week_start, correct, total in results
+            ]
+
+    async def get_weekly_results_by_user_and_company(
+        self, company_id: UUID, target_user_id: UUID, current_user_id: UUID
+    ) -> list[WeeklyUserQuizScoreSchema]:
+        async with self.uow:
+            await self._check_owner_or_admin(company_id, current_user_id)
+            results = await self.uow.quiz_results.get_weekly_user_results_by_company(
+                company_id, target_user_id
+            )
+
+            return [
+                WeeklyUserQuizScoreSchema(
+                    quiz_id=quiz_id,
+                    user_id=user_id,
+                    week_start=week_start,
+                    average_score=round(correct / total * 100, 2) if total else 0.0,
+                )
+                for quiz_id, user_id, week_start, correct, total in results
+            ]
+
+    async def get_last_attempts_by_company(
+        self, company_id: UUID, current_user_id: UUID
+    ) -> list[CompanyMemberLastAttemptSchema]:
+        async with self.uow:
+            await self._check_owner_or_admin(company_id, current_user_id)
+            results = await self.uow.quiz_results.get_last_attempt_time_of_user_by_company(
+                company_id
+            )
+
+            return [
+                CompanyMemberLastAttemptSchema(
+                    user_id=user_id, last_attempt_at=last_attempt_at
+                )
+                for user_id, last_attempt_at in results
+            ]
