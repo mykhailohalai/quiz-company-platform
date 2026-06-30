@@ -59,6 +59,3 @@ class CompanyService:
             await self.uow.commit()
         logger.info("Company deleted: id=%s", company_id)
 
-
-def get_company_service(uow=Depends(get_uow)) -> CompanyService:
-    return CompanyService(uow)
