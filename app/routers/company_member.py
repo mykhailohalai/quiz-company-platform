@@ -1,19 +1,16 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status, Security
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Depends, Query, status
 
+from app.models.user import User
 from app.schemas.company_member import (
     CompanyMemberInvitationCreate,
     PaginatedCompanyMemberListResponse,
     CompanyMemberMembershipResponse,
     CompanyMemberRequestCreate,
 )
-from app.services.company_member_service import (
-    CompanyMemberService,
-    get_company_member_service,
-)
-from app.services.user_service import UserService, get_user_service
+from app.services.company_member_service import CompanyMemberService
+from app.dependencies import get_current_user_dep, get_company_member_service
 
 company_member_router = APIRouter()
 
@@ -26,15 +23,12 @@ company_member_router = APIRouter()
 async def create_invitation_to_user(
     data: CompanyMemberInvitationCreate,
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     invitation = await company_member_service.send_invitation(
         current_user.id, company_id, data
     )
-
     return CompanyMemberMembershipResponse.model_validate(invitation)
 
 
@@ -45,11 +39,9 @@ async def create_invitation_to_user(
 async def cancel_invitation_by_owner(
     invitation_id: UUID,
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     await company_member_service.cancel_invitation(
         current_user.id, company_id, invitation_id
     )
@@ -62,15 +54,12 @@ async def cancel_invitation_by_owner(
 )
 async def accept_invitation_by_user(
     invitation_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     invitation = await company_member_service.accept_invitation(
         current_user.id, invitation_id
     )
-
     return CompanyMemberMembershipResponse.model_validate(invitation)
 
 
@@ -81,15 +70,12 @@ async def accept_invitation_by_user(
 )
 async def decline_invitation_by_user(
     invitation_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     invitation = await company_member_service.decline_invitation(
         current_user.id, invitation_id
     )
-
     return CompanyMemberMembershipResponse.model_validate(invitation)
 
 
@@ -100,13 +86,10 @@ async def decline_invitation_by_user(
 )
 async def send_join_request_by_user(
     data: CompanyMemberRequestCreate,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     request = await company_member_service.send_join_request(current_user.id, data)
-
     return CompanyMemberMembershipResponse.model_validate(request)
 
 
@@ -116,11 +99,9 @@ async def send_join_request_by_user(
 )
 async def cancel_join_request_by_user(
     join_request_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     await company_member_service.cancel_join_request(current_user.id, join_request_id)
 
 
@@ -129,17 +110,14 @@ async def cancel_join_request_by_user(
     response_model=CompanyMemberMembershipResponse,
     status_code=status.HTTP_200_OK,
 )
-async def accept_invitation_by_user(
+async def accept_join_request_by_owner(
     join_request_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     invitation = await company_member_service.accept_join_request(
         join_request_id, current_user.id
     )
-
     return CompanyMemberMembershipResponse.model_validate(invitation)
 
 
@@ -148,17 +126,14 @@ async def accept_invitation_by_user(
     response_model=CompanyMemberMembershipResponse,
     status_code=status.HTTP_200_OK,
 )
-async def decline_invitation_by_user(
+async def decline_join_request_by_owner(
     join_request_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     invitation = await company_member_service.decline_join_request(
         join_request_id, current_user.id
     )
-
     return CompanyMemberMembershipResponse.model_validate(invitation)
 
 
@@ -169,11 +144,9 @@ async def decline_invitation_by_user(
 async def remove_company_member(
     member_id: UUID,
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     await company_member_service.remove_member(member_id, company_id, current_user.id)
 
 
@@ -183,11 +156,9 @@ async def remove_company_member(
 )
 async def leave_company(
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     await company_member_service.leave_company(company_id, current_user.id)
 
 
@@ -221,11 +192,9 @@ async def get_all_invitations_by_company(
     company_id: UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     invitations, total = await company_member_service.get_invitations_by_company(
         company_id, current_user.id, skip, limit
     )
@@ -247,11 +216,9 @@ async def get_all_requests_by_company(
     company_id: UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     requests, total = await company_member_service.get_requests_by_company(
         company_id, current_user.id, skip, limit
     )
@@ -272,11 +239,9 @@ async def get_all_requests_by_company(
 async def get_my_invitations(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     invitations, total = await company_member_service.get_invitations_by_user(
         current_user.id, skip, limit
     )
@@ -297,11 +262,9 @@ async def get_my_invitations(
 async def get_my_requests(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     requests, total = await company_member_service.get_requests_by_user(
         current_user.id, skip, limit
     )
@@ -313,24 +276,22 @@ async def get_my_requests(
         has_more=skip + limit < total,
     )
 
+
 @company_member_router.get(
     "/companies/{company_id}/admins",
     response_model=PaginatedCompanyMemberListResponse,
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
 )
 async def get_admins(
     company_id: UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     admins, total = await company_member_service.get_admins_by_company(
         company_id, current_user.id, skip, limit
     )
-
     return PaginatedCompanyMemberListResponse(
         members=admins,
         total=total,
@@ -343,18 +304,15 @@ async def get_admins(
 @company_member_router.patch(
     "/companies/{company_id}/members/{user_id}/appoint-admin",
     response_model=CompanyMemberMembershipResponse,
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
 )
 async def appoint_admin(
     user_id: UUID,
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     admin = await company_member_service.appoint_admin(company_id, user_id, current_user.id)
-
     return CompanyMemberMembershipResponse.model_validate(admin)
 
 
@@ -366,13 +324,10 @@ async def appoint_admin(
 async def remove_admin(
     user_id: UUID,
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     company_member_service: CompanyMemberService = Depends(get_company_member_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     admin = await company_member_service.remove_admin(
         company_id, user_id, current_user.id
     )
-
     return CompanyMemberMembershipResponse.model_validate(admin)
