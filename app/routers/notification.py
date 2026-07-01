@@ -31,7 +31,7 @@ async def get_user_notifications(
 
 
 @notification_router.patch(
-    "/notifications/{notification_id}/read",
+    "/notifications/{notification_id}",
     response_model=NotificationResponseSchema,
     status_code=status.HTTP_200_OK,
 )
