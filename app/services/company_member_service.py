@@ -169,6 +169,12 @@ class CompanyMemberService:
                 company_id, skip, limit
             )
 
+    async def get_all_members(
+        self, company_id: UUID
+    ):
+        async with self.uow:
+            return await self.uow.company_members.get_all_members_by_company(company_id)
+
     async def get_invitations_by_company(
         self, company_id: UUID, current_user_id: UUID, skip: int, limit: int
     ) -> tuple[list[CompanyMember], int]:
@@ -270,4 +276,3 @@ class CompanyMemberService:
             return await self.uow.company_members.get_admins_by_company(
                 company.id, skip, limit
             )
-

@@ -70,6 +70,19 @@ class CompanyMemberRepository(
 
         return result.scalars().all(), total
 
+    async def get_all_members_by_company(self, company_id: UUID) -> CompanyMember:
+        result = await self.session.execute(
+            select(CompanyMember)
+            .where(
+                and_(
+                    CompanyMember.status == InviteStatus.ACTIVE,
+                    CompanyMember.company_id == company_id,
+                )
+            )
+        )
+
+        return result.scalars().all()
+
     async def get_admins_by_company(self, company_id: UUID, skip: int, limit: int):
         total = await self.session.scalar(
             select(func.count())
