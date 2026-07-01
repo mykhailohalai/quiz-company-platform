@@ -4,7 +4,7 @@ from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy import ForeignKey, Uuid, String, Enum as SAEnum
 from uuid import UUID, uuid4
 from app.core.database import Base
-from enum import Enum, auto
+from enum import Enum
 
 from app.models.mixins import TimeStampMixin
 
@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 
 
 class CompanyVisibility(Enum):
-    Hidden = auto()
-    Visible_to_all = auto()
+    HIDDEN = "hidden"
+    VISIBLE_TO_ALL = "visible to all"
 
 
 class Company(TimeStampMixin, Base):
@@ -28,5 +28,5 @@ class Company(TimeStampMixin, Base):
     visibility: Mapped[CompanyVisibility] = mapped_column(
         SAEnum(CompanyVisibility, name="company_visibility"),
         nullable=False,
-        default=CompanyVisibility.Visible_to_all
+        default=CompanyVisibility.VISIBLE_TO_ALL
     )

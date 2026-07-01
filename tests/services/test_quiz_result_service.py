@@ -15,7 +15,7 @@ from app.schemas.quiz_result import QuizSubmitSchema, QuestionAnswerSchema
 def make_company(**kwargs):
     defaults = dict(
         id=uuid4(), name="Acme", description="desc",
-        owner_id=uuid4(), visibility=CompanyVisibility.Visible_to_all,
+        owner_id=uuid4(), visibility=CompanyVisibility.VISIBLE_TO_ALL,
     )
     defaults.update(kwargs)
     return Company(**defaults)
@@ -42,7 +42,7 @@ def make_quiz(**kwargs):
 def make_question(quiz_id, **kwargs):
     defaults = dict(
         id=uuid4(), title="Q?",
-        question_type=QuestionType.SingleAnswer, quiz_id=quiz_id,
+        question_type=QuestionType.SINGLE_ANSWER, quiz_id=quiz_id,
     )
     defaults.update(kwargs)
     return Question(**defaults)
