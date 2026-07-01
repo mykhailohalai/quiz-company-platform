@@ -16,6 +16,7 @@ from app.schemas.quiz_result import (
     WeeklyCompanyScoreSchema,
     WeeklyUserQuizScoreSchema,
 )
+from app.services.notification_service import NotificationService
 from app.utils.unit_of_work import UnitOfWork
 from app.schemas.quiz import QuizCreateRequestSchema, QuizUpdateRequestSchema
 from app.services.redis_service import RedisService
@@ -24,9 +25,15 @@ logger = logging.getLogger(__name__)
 
 
 class QuizService:
-    def __init__(self, uow: UnitOfWork, redis_service: RedisService):
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        redis_service: RedisService,
+        notification_service: NotificationService,
+    ):
         self.uow = uow
         self.redis_service = redis_service
+        self.notification_service = notification_service
 
     async def _check_owner_or_admin(
         self, company_id: UUID, current_user_id: UUID
@@ -56,6 +63,7 @@ class QuizService:
             await self.uow.commit()
             quiz = await self.uow.quizzes.get_with_relations(company_id, quiz.id)
             logger.info("Quiz created: id=%s company_id=%s", quiz.id, company_id)
+            await self.notification_service.send_notification(company_id, f"New quiz with name '{quiz.title}' was created")
             return quiz
 
     async def update_quiz(
@@ -265,7 +273,9 @@ class QuizService:
     ) -> list[WeeklyCompanyScoreSchema]:
         async with self.uow:
             await self._check_owner_or_admin(company_id, current_user_id)
-            results = await self.uow.quiz_results.get_weekly_results_by_company(company_id)
+            results = await self.uow.quiz_results.get_weekly_results_by_company(
+                company_id
+            )
 
             return [
                 WeeklyCompanyScoreSchema(
@@ -300,8 +310,10 @@ class QuizService:
     ) -> list[CompanyMemberLastAttemptSchema]:
         async with self.uow:
             await self._check_owner_or_admin(company_id, current_user_id)
-            results = await self.uow.quiz_results.get_last_attempt_time_of_user_by_company(
-                company_id
+            results = (
+                await self.uow.quiz_results.get_last_attempt_time_of_user_by_company(
+                    company_id
+                )
             )
 
             return [
