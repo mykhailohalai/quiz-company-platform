@@ -5,6 +5,7 @@ from app.repositories.quiz_result_repository import QuizResultRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.company_member_repository import CompanyMemberRepository
+from app.repositories.notification_repository import NotificationRepository
 
 
 class UnitOfWork:
@@ -17,6 +18,7 @@ class UnitOfWork:
         self.company_members = CompanyMemberRepository(self.session)
         self.quizzes = QuizRepository(self.session)
         self.quiz_results = QuizResultRepository(self.session)
+        self.notifications = NotificationRepository(self.session)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
