@@ -1,7 +1,7 @@
 """BE-9: rename enum values to UPPER_SNAKE_CASE
 
 Revision ID: 703db884292d
-Revises: b346b4c79904
+Revises: 1c91aec90e8d
 Create Date: 2026-06-26 15:28:54.872744
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '703db884292d'
-down_revision: Union[str, Sequence[str], None] = 'b346b4c79904'
+down_revision: Union[str, Sequence[str], None] = '1c91aec90e8d'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

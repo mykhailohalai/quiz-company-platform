@@ -1,12 +1,12 @@
 import io
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status, Security
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import StreamingResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.dependencies import get_current_user_dep
+from app.models.user import User
 from app.utils.formatter import Formatter
-
 from app.schemas.quiz import (
     QuizCreateRequestSchema,
     QuizUpdateRequestSchema,
@@ -14,11 +14,11 @@ from app.schemas.quiz import (
     PaginatedQuizResponseSchema,
 )
 from app.schemas.quiz_result import (
+    AverageScoreResponseSchema,
     QuizResultResponseSchema,
-    QuizSubmitSchema
+    QuizSubmitSchema,
 )
 from app.services.quiz_service import QuizService, get_quiz_service
-from app.services.user_service import UserService, get_user_service
 
 quiz_router = APIRouter()
 
@@ -31,11 +31,9 @@ quiz_router = APIRouter()
 async def create_quiz(
     company_id: UUID,
     data: QuizCreateRequestSchema,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     quiz = await quiz_service.create_quiz(company_id, current_user.id, data)
     return QuizResponseSchema.model_validate(quiz)
 
@@ -49,11 +47,9 @@ async def update_quiz(
     company_id: UUID,
     quiz_id: UUID,
     data: QuizUpdateRequestSchema,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     quiz = await quiz_service.update_quiz(quiz_id, company_id, current_user.id, data)
     return QuizResponseSchema.model_validate(quiz)
 
@@ -65,11 +61,9 @@ async def update_quiz(
 async def delete_quiz(
     company_id: UUID,
     quiz_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     await quiz_service.delete_quiz(quiz_id, company_id, current_user.id)
 
 
@@ -95,24 +89,22 @@ async def get_quizzes(
 
 
 @quiz_router.get(
-    "/companies/{company_id}/quizzes/{quiz_id}/take",
+    "/companies/{company_id}/quizzes/{quiz_id}",
     response_model=QuizResponseSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_quiz_for_member(
     company_id: UUID,
     quiz_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     quiz = await quiz_service.get_quiz_by_company_member(company_id, current_user.id, quiz_id)
     return QuizResponseSchema.model_validate(quiz)
 
 
 @quiz_router.post(
-    "/companies/{company_id}/quizzes/{quiz_id}/submit",
+    "/companies/{company_id}/quizzes/{quiz_id}/results",
     response_model=QuizResultResponseSchema,
     status_code=status.HTTP_201_CREATED,
 )
@@ -120,42 +112,38 @@ async def submit_quiz(
     company_id: UUID,
     quiz_id: UUID,
     data: QuizSubmitSchema,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     result = await quiz_service.submit_quiz(company_id, quiz_id, current_user.id, data)
     return QuizResultResponseSchema.model_validate(result)
 
 
 @quiz_router.get(
-    "/companies/{company_id}/users/me/average",
-    response_model=float,
+    "/companies/{company_id}/users/me/score",
+    response_model=AverageScoreResponseSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_average_by_company(
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
-    return await quiz_service.get_average_by_company(current_user.id, company_id)
+    average_score = await quiz_service.get_average_by_company(current_user.id, company_id)
+    return AverageScoreResponseSchema(average_score=average_score)
 
 
 @quiz_router.get(
-    "/users/me/average",
-    response_model=float,
+    "/users/me/score",
+    response_model=AverageScoreResponseSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_average_by_system(
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
-    return await quiz_service.get_average_by_system(current_user.id)
+    average_score = await quiz_service.get_average_by_system(current_user.id)
+    return AverageScoreResponseSchema(average_score=average_score)
 
 
 @quiz_router.get(
@@ -165,11 +153,9 @@ async def get_average_by_system(
 async def get_user_quiz_results(
     company_id: UUID,
     user_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     return await quiz_service.get_user_results_by_admin_and_owner(current_user.id, user_id, company_id)
 
 
@@ -179,11 +165,9 @@ async def get_user_quiz_results(
 )
 async def get_everyone_quiz_results(
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     return await quiz_service.get_all_results_by_admin_and_owner(
         current_user.id, company_id
     )
@@ -196,11 +180,9 @@ async def get_everyone_quiz_results(
 async def get_my_quiz_results(
     company_id: UUID,
     quiz_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     return await quiz_service.get_my_quiz_result(current_user.id, company_id, quiz_id)
 
 
@@ -211,11 +193,9 @@ async def get_my_quiz_results(
 async def export_quiz_results(
     company_id: UUID,
     quiz_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
     quiz_service: QuizService = Depends(get_quiz_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     results = await quiz_service.get_quiz_results_for_export(
         current_user.id, company_id, quiz_id
     )

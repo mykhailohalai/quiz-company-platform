@@ -1,7 +1,5 @@
 from uuid import UUID
 
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 from app.schemas.token import RefreshTokenRequestSchema, TokenResponseSchema
 from app.schemas.user import (
     PaginatedUserDetailResponseSchema,
@@ -10,9 +8,11 @@ from app.schemas.user import (
     UserSignUpRequestSchema,
     UserUpdateRequestSchema,
 )
-from fastapi import APIRouter, Depends, Query, Security, status
+from fastapi import APIRouter, Depends, Query, status
 
-from app.services.user_service import UserService, get_user_service
+from app.models.user import User
+from app.services.user_service import UserService
+from app.dependencies import get_current_user_dep, get_user_service
 
 user_router = APIRouter()
 
@@ -69,20 +69,18 @@ async def get_user_by_id(
 async def update_user_details(
     user_id: UUID,
     updated_data: UserUpdateRequestSchema,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    current_user: User = Depends(get_current_user_dep),
     user_service: UserService = Depends(get_user_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     return await user_service.update_user(user_id, current_user.id, updated_data)
 
 
 @user_router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_by_id(
     user_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    current_user: User = Depends(get_current_user_dep),
     user_service: UserService = Depends(get_user_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     await user_service.delete_user(user_id, current_user.id)
 
 
@@ -105,10 +103,9 @@ async def user_login(
     status_code=status.HTTP_200_OK,
 )
 async def get_user_profile(
-    credentials: HTTPAuthorizationCredentials = Security(HTTPBearer()),
-    user_service: UserService = Depends(get_user_service),
+    current_user: User = Depends(get_current_user_dep),
 ):
-    return await user_service.get_current_user(credentials.credentials)
+    return current_user
 
 
 @user_router.post(

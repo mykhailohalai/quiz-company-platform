@@ -221,7 +221,7 @@ class CompanyMemberService:
             if member is None or member.status != InviteStatus.ACTIVE:
                 raise CompanyMemberNotFoundException(user_id)
 
-            if await self.is_admin(user_id, company.id):
+            if member.role == Role.ADMIN:
                 raise CompanyMemberAdminException(user_id)
 
             member.role = Role.ADMIN
@@ -271,6 +271,3 @@ class CompanyMemberService:
                 company.id, skip, limit
             )
 
-
-def get_company_member_service(uow=Depends(get_uow)) -> CompanyMemberService:
-    return CompanyMemberService(uow)
