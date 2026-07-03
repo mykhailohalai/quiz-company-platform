@@ -14,3 +14,4 @@ httpx==0.28.1
 auth0-server-python==1.0.0b10
 PyJWT==2.10.1
 cryptography==44.0.0
+apscheduler==3.11.3
