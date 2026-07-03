@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import UUID
 
 from app.models.notification import Notification, NotificationStatus
@@ -20,7 +20,7 @@ class NotificationService:
                     user_id=member.user_id,
                     message=message,
                     status=NotificationStatus.UNREAD,
-                    timestamp=datetime.now(timezone.utc),
+                    timestamp=datetime.utcnow(),
                 )
                 await self.uow.notifications.create(notification)
             await self.uow.commit()

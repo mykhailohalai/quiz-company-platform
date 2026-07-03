@@ -17,6 +17,8 @@ class Notification(Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     message: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[NotificationStatus] = mapped_column(
-        SAEnum(NotificationStatus), nullable=False, default=NotificationStatus.UNREAD
+        SAEnum(NotificationStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        nullable=False,
+        default=NotificationStatus.UNREAD,
     )
     timestamp: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=False)
