@@ -1,11 +1,13 @@
 from uuid import UUID
 
 from app.exceptions.quiz_exceptions import QuizNotFoundException, QuizAlreadyExistsException
+from app.models.company_member import InviteStatus
 
 
 class FakeQuizRepository:
-    def __init__(self, quizzes=None):
+    def __init__(self, quizzes=None, company_members=None):
         self.quizzes = {q.id: q for q in (quizzes or [])}
+        self.company_members = company_members
 
     async def get_by_id(self, quiz_id: UUID):
         quiz = self.quizzes.get(quiz_id)
@@ -38,3 +40,11 @@ class FakeQuizRepository:
     async def get_by_company(self, company_id: UUID, skip: int = 0, limit: int = 10):
         result = [q for q in self.quizzes.values() if q.company_id == company_id]
         return result[skip:skip + limit], len(result)
+
+    async def get_available_quizzes_for_user(self, user_id: UUID):
+        members = self.company_members.members.values() if self.company_members else []
+        company_ids = {
+            m.company_id for m in members
+            if m.user_id == user_id and m.status == InviteStatus.ACTIVE
+        }
+        return [q for q in self.quizzes.values() if q.company_id in company_ids]
