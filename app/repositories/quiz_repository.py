@@ -7,6 +7,7 @@ from app.exceptions.quiz_exceptions import (
     QuizNotFoundException,
     QuizAlreadyExistsException,
 )
+from app.models.company_member import CompanyMember, InviteStatus
 from app.models.quiz import Quiz, Question, Answer
 from app.repositories.base_repository import BaseRepository
 from app.schemas.quiz import QuizUpdateRequestSchema, QuestionCreateRequestSchema
@@ -90,3 +91,16 @@ class QuizRepository(BaseRepository[Quiz, QuizUpdateRequestSchema]):
             select(Quiz).where(condition).offset(skip).limit(limit)
         )
         return result.scalars().all(), total
+
+    async def get_available_quizzes_for_user(self, user_id: UUID) -> list[Quiz]:
+        result = await self.session.execute(
+            select(Quiz)
+            .join(CompanyMember, CompanyMember.company_id == Quiz.company_id)
+            .where(
+                and_(
+                    CompanyMember.user_id == user_id,
+                    CompanyMember.status == InviteStatus.ACTIVE,
+                )
+            )
+        )
+        return result.scalars().all()
