@@ -41,6 +41,7 @@ from app.exceptions.quiz_exceptions import (
     QuizFrequencyException,
     QuizResultNotFoundException,
     QuizResultAlreadyExistsException,
+    InvalidQuizFileException,
 )
 
 async def check_overdue_quizzes() -> None:
@@ -99,6 +100,7 @@ _HTTP_EXCEPTION_MAP: dict[type[Exception], int] = {
     QuizFrequencyException: status.HTTP_403_FORBIDDEN,
     QuizResultNotFoundException: status.HTTP_404_NOT_FOUND,
     QuizResultAlreadyExistsException: status.HTTP_409_CONFLICT,
+    InvalidQuizFileException: status.HTTP_400_BAD_REQUEST,
     NotificationNotFoundException: status.HTTP_404_NOT_FOUND,
     ForbiddenException: status.HTTP_403_FORBIDDEN,
 }

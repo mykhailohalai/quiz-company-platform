@@ -17,6 +17,7 @@ from app.schemas.quiz_result import (
     WeeklyUserQuizScoreSchema,
 )
 from app.services.notification_service import NotificationService
+from app.utils.excel_importer import ExcelImporter
 from app.utils.unit_of_work import UnitOfWork
 from app.schemas.quiz import QuizCreateRequestSchema, QuizUpdateRequestSchema
 from app.services.redis_service import RedisService
@@ -92,6 +93,53 @@ class QuizService:
             quiz = await self.uow.quizzes.get_with_relations(company_id, quiz_id)
             logger.info("Quiz updated: id=%s", quiz_id)
             return quiz
+
+    async def import_quizzes(
+        self, company_id: UUID, current_user_id: UUID, file_bytes: bytes
+    ) -> list[Quiz]:
+        quizzes_data = ExcelImporter.parse_quizzes(file_bytes)
+
+        async with self.uow:
+            await self._check_owner_or_admin(company_id, current_user_id)
+
+            quiz_ids = []
+            for quiz_data in quizzes_data:
+                existing = await self.uow.quizzes.get_by_company_and_title(
+                    company_id, quiz_data.title
+                )
+                if existing is None:
+                    quiz = Quiz(
+                        title=quiz_data.title,
+                        description=quiz_data.description,
+                        frequency=quiz_data.frequency,
+                        company_id=company_id,
+                    )
+                    await self.uow.quizzes.create_with_questions(
+                        quiz, quiz_data.questions
+                    )
+                    quiz_ids.append(quiz.id)
+                else:
+                    existing.description = quiz_data.description
+                    existing.frequency = quiz_data.frequency
+                    await self.uow.quizzes.update_questions(
+                        company_id, existing.id, quiz_data.questions
+                    )
+                    quiz_ids.append(existing.id)
+
+            await self.uow.commit()
+
+            quizzes = [
+                await self.uow.quizzes.get_with_relations(company_id, quiz_id)
+                for quiz_id in quiz_ids
+            ]
+            logger.info(
+                "Imported %d quizzes from Excel: company_id=%s",
+                len(quizzes), company_id,
+            )
+            await self.notification_service.send_notification(
+                company_id, f"{len(quizzes)} quiz(zes) imported from Excel"
+            )
+            return quizzes
 
     async def delete_quiz(
         self, quiz_id: UUID, company_id: UUID, current_user_id: UUID

@@ -2,7 +2,7 @@ import io
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 
 from app.dependencies import get_current_user_dep, get_quiz_service
@@ -42,6 +42,22 @@ async def create_quiz(
 ):
     quiz = await quiz_service.create_quiz(company_id, current_user.id, data)
     return QuizResponseSchema.model_validate(quiz)
+
+
+@quiz_router.post(
+    "/companies/{company_id}/quizzes/import",
+    response_model=list[QuizResponseSchema],
+    status_code=status.HTTP_201_CREATED,
+)
+async def import_quizzes(
+    company_id: UUID,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    file_bytes = await file.read()
+    quizzes = await quiz_service.import_quizzes(company_id, current_user.id, file_bytes)
+    return [QuizResponseSchema.model_validate(quiz) for quiz in quizzes]
 
 
 @quiz_router.patch(
