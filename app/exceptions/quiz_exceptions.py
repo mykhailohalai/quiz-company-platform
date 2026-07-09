@@ -29,3 +29,9 @@ class QuizResultAlreadyExistsException(Exception):
     def __init__(self, field: str):
         self.field = field
         super().__init__(f"Quiz result with the same {field} already exists.")
+
+
+class InvalidQuizFileException(Exception):
+    def __init__(self, detail: str):
+        self.detail = detail
+        super().__init__(f"Invalid quiz import file: {detail}")
