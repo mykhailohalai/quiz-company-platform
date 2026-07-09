@@ -1,10 +1,12 @@
+import io
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import openpyxl
 import pytest
 
 from app.exceptions.general_exceptions import ForbiddenException
-from app.exceptions.quiz_exceptions import QuizNotFoundException
+from app.exceptions.quiz_exceptions import InvalidQuizFileException, QuizNotFoundException
 from app.models.company import Company, CompanyVisibility
 from app.models.company_member import CompanyMember, InviteStatus, Role
 from app.models.quiz import Quiz, QuestionType
@@ -565,3 +567,119 @@ async def test_notify_all_overdue_quizzes_does_nothing_when_no_users(quiz_servic
     await quiz_service.notify_all_overdue_quizzes()
 
     assert len(uow.notifications.notifications) == 0
+
+
+# --- import_quizzes ---
+
+IMPORT_HEADER = [
+    "quiz_title", "quiz_description", "quiz_frequency",
+    "question_title", "question_type",
+    "answer_1_text", "answer_1_correct",
+    "answer_2_text", "answer_2_correct",
+    "answer_3_text", "answer_3_correct",
+    "answer_4_text", "answer_4_correct",
+]
+
+
+def make_import_row(**overrides):
+    defaults = dict(
+        quiz_title="Python Basics",
+        quiz_description="A quiz about Python",
+        quiz_frequency=7,
+        question_title="What is a list?",
+        question_type="single answer",
+        answer_1_text="A mutable sequence",
+        answer_1_correct=True,
+        answer_2_text="A number",
+        answer_2_correct=False,
+        answer_3_text=None,
+        answer_3_correct=None,
+        answer_4_text=None,
+        answer_4_correct=None,
+    )
+    defaults.update(overrides)
+    return [defaults[col] for col in IMPORT_HEADER]
+
+
+def make_import_file(rows):
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.append(IMPORT_HEADER)
+    for row in rows:
+        sheet.append(row)
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
+async def test_import_quizzes_creates_new_quiz(quiz_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    uow.companies.companies[company.id] = company
+    file_bytes = make_import_file([
+        make_import_row(),
+        make_import_row(question_title="What is a tuple?"),
+    ])
+
+    quizzes = await quiz_service.import_quizzes(company.id, owner_id, file_bytes)
+
+    assert len(quizzes) == 1
+    assert quizzes[0].title == "Python Basics"
+    assert quizzes[0].company_id == company.id
+    assert len(quizzes[0].questions) == 2
+    assert uow.committed is True
+
+
+async def test_import_quizzes_creates_multiple_quizzes(quiz_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    uow.companies.companies[company.id] = company
+    file_bytes = make_import_file([
+        make_import_row(quiz_title="Quiz A", question_title="A-Q1"),
+        make_import_row(quiz_title="Quiz A", question_title="A-Q2"),
+        make_import_row(quiz_title="Quiz B", question_title="B-Q1"),
+        make_import_row(quiz_title="Quiz B", question_title="B-Q2"),
+    ])
+
+    quizzes = await quiz_service.import_quizzes(company.id, owner_id, file_bytes)
+
+    assert {q.title for q in quizzes} == {"Quiz A", "Quiz B"}
+
+
+async def test_import_quizzes_updates_existing_quiz_by_title(quiz_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    existing = make_quiz(company_id=company.id, title="Python Basics", frequency=3)
+    uow.companies.companies[company.id] = company
+    uow.quizzes.quizzes[existing.id] = existing
+    file_bytes = make_import_file([
+        make_import_row(quiz_frequency=14),
+        make_import_row(quiz_frequency=14, question_title="What is a tuple?"),
+    ])
+
+    quizzes = await quiz_service.import_quizzes(company.id, owner_id, file_bytes)
+
+    assert len(quizzes) == 1
+    assert quizzes[0].id == existing.id
+    assert quizzes[0].frequency == 14
+    assert len(quizzes[0].questions) == 2
+
+
+async def test_import_quizzes_raises_when_not_owner_or_admin(quiz_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+    file_bytes = make_import_file([
+        make_import_row(),
+        make_import_row(question_title="What is a tuple?"),
+    ])
+
+    with pytest.raises(ForbiddenException):
+        await quiz_service.import_quizzes(company.id, uuid4(), file_bytes)
+
+
+async def test_import_quizzes_raises_on_invalid_file(quiz_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(InvalidQuizFileException):
+        await quiz_service.import_quizzes(company.id, company.owner_id, b"not an excel file")
