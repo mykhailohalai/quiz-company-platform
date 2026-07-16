@@ -68,10 +68,10 @@ class QuizService:
             if data.frequency is not None:
                 quiz.frequency = data.frequency
             if data.questions is not None:
-                await self.uow.quizzes.update_questions(quiz_id, data.questions)
+                await self.uow.quizzes.update_questions(company_id, quiz_id, data.questions)
 
             await self.uow.commit()
-            quiz = await self.uow.quizzes.get_with_relations(quiz_id)
+            quiz = await self.uow.quizzes.get_with_relations(company_id, quiz_id)
             logger.info("Quiz updated: id=%s", quiz_id)
             return quiz
 
