@@ -98,10 +98,8 @@ class QuizService:
         self, company_id: UUID, user_id: UUID, quiz_id: UUID
     ) -> Quiz:
         async with self.uow:
-            member = (
-                await self.uow.company_members.get_active_member_by_company_and_user(
-                    company_id, user_id
-                )
+            member = await self.uow.company_members.get_active_member(
+                company_id, user_id
             )
             if member is None:
                 raise ForbiddenException()
@@ -111,10 +109,8 @@ class QuizService:
         self, company_id: UUID, quiz_id: UUID, user_id: UUID, data: QuizSubmitSchema
     ) -> QuizResult:
         async with self.uow:
-            member = (
-                await self.uow.company_members.get_active_member_by_company_and_user(
-                    company_id, user_id
-                )
+            member = await self.uow.company_members.get_active_member(
+                company_id, user_id
             )
             if member is None:
                 raise ForbiddenException()

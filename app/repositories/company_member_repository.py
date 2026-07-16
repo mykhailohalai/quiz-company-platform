@@ -30,7 +30,7 @@ class CompanyMemberRepository(
 
         return requests.scalar_one_or_none()
 
-    async def get_active_member_by_company_and_user(
+    async def get_active_member(
         self, company_id: UUID, user_id: UUID
     ):
         result = await self.session.execute(
