@@ -130,19 +130,20 @@ class QuizService:
 
             correct_map = await self.uow.quizzes.get_correct_answer_ids(quiz_id)
             answered_at = datetime.now(timezone.utc)
-            redis_answers = [
-                QuizAnswerRedisSchema(
-                    user_id=user_id,
-                    company_id=company_id,
-                    quiz_id=quiz_id,
-                    question_id=ua.question_id,
-                    answer_ids=ua.answer_ids,
-                    is_correct=set(ua.answer_ids)
-                    == set(correct_map.get(ua.question_id, [])),
-                    answered_at=answered_at,
+            redis_answers = []
+            for ua in data.answers:
+                is_correct = set(ua.answer_ids) == set(correct_map.get(ua.question_id, []))
+                redis_answers.append(
+                    QuizAnswerRedisSchema(
+                        user_id=user_id,
+                        company_id=company_id,
+                        quiz_id=quiz_id,
+                        question_id=ua.question_id,
+                        answer_ids=ua.answer_ids,
+                        is_correct=is_correct,
+                        answered_at=answered_at,
+                    )
                 )
-                for ua in data.answers
-            ]
             correct_answers = sum(1 for a in redis_answers if a.is_correct)
 
             result = QuizResult(

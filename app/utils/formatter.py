@@ -16,7 +16,9 @@ class Formatter:
         ])
         
         for r in results:
-            score = round(r.correct_answers / r.total_questions * 100, 2) if r.total_questions else 0.0
+            score = 0.0
+            if r.total_questions:
+                score = round(r.correct_answers / r.total_questions * 100, 2)
             writer.writerow([
                 r.user_id, r.quiz_id, r.company_id,
                 r.correct_answers, r.total_questions, score, r.created_at
