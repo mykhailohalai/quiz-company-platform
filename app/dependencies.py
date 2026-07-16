@@ -3,7 +3,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.models.user import User
 from app.services.company_member_service import CompanyMemberService
 from app.services.company_service import CompanyService
-from app.services.quiz_service import QuizService
 from app.services.user_service import UserService
 from app.utils.unit_of_work import UnitOfWork, get_uow
 
@@ -25,7 +24,3 @@ def get_company_service(uow: UnitOfWork = Depends(get_uow)) -> CompanyService:
 
 def get_company_member_service(uow: UnitOfWork = Depends(get_uow)) -> CompanyMemberService:
     return CompanyMemberService(uow)
-
-
-def get_quiz_service(uow: UnitOfWork = Depends(get_uow)) -> QuizService:
-    return QuizService(uow)
