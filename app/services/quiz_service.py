@@ -128,9 +128,7 @@ class QuizService:
                 if days_since < quiz.frequency:
                     raise QuizFrequencyException()
 
-            correct_map = {
-                q.id: {a.id for a in q.answers if a.is_correct} for q in quiz.questions
-            }
+            correct_map = await self.uow.quizzes.get_correct_answer_ids(quiz_id)
             answered_at = datetime.now(timezone.utc)
             redis_answers = [
                 QuizAnswerRedisSchema(
@@ -140,7 +138,7 @@ class QuizService:
                     question_id=ua.question_id,
                     answer_ids=ua.answer_ids,
                     is_correct=set(ua.answer_ids)
-                    == correct_map.get(ua.question_id, set()),
+                    == set(correct_map.get(ua.question_id, [])),
                     answered_at=answered_at,
                 )
                 for ua in data.answers
