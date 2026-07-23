@@ -7,12 +7,13 @@ import logging
 from app.routers import router
 from app.routers.user import user_router
 from app.core import settings
-from app.exceptions.user_exceptions import UserAlreadyExistsException, UserNotFoundException
+from app.exceptions.user_exceptions import (
+    UserAlreadyExistsException, 
+    UserNotFoundException, 
+    InvalidCredentialsException
+)
 
 app = FastAPI(title=settings.app_name)
-
-# db mock
-todos = {}
 
 origins = settings.allowed_origins
 
@@ -50,6 +51,15 @@ async def user_already_exists_handler(request: Request, ex: UserAlreadyExistsExc
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content = {"details": str(ex)}
+    )
+
+
+@app.exception_handler(InvalidCredentialsException)
+async def invalid_credentials_handler(request: Request, ex: InvalidCredentialsException):
+    logger.warning("Invalid credentials: %s", ex)
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"details": str(ex)}
     )
 
 

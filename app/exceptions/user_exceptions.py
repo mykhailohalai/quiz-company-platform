@@ -10,3 +10,8 @@ class UserAlreadyExistsException(Exception):
     def __init__(self, field: str):
         self.field = field
         super().__init__(f"User with the same {field} already exists")
+
+
+class InvalidCredentialsException(Exception):
+    def __init__(self):
+        super().__init__("Invalid username or password")

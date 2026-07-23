@@ -1,12 +1,11 @@
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from uuid import UUID, uuid4
+from uuid import UUID
 
 
 class UserSignInRequestSchema(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=8, max_length=255)
-    email: EmailStr | None = Field(default=None, max_length=100)
 
 
 class UserSignUpRequestSchema(BaseModel):

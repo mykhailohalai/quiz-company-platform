@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     db_port: int = 5432
     redis_host: str = "redis"
     redis_port: int = 6379
+    auth0_domain: str = ""
+    auth0_audience: str = ""
+    jwt_secret_key: str = ""
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+    jwt_refresh_secret_key: str = ""
+    jwt_refresh_expire_minutes: int = 60 * 24 * 2
 
     @property
     def database_url(self) -> str:

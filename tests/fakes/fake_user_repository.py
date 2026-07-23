@@ -18,6 +18,18 @@ class FakeUserRepository:
             raise UserNotFoundException(user_id)
         return user
 
+    async def get_by_username(self, username):
+        for user in self.users.values():
+            if user.username == username:
+                return user
+        return None
+
+    async def get_by_email(self, email):
+        for user in self.users.values():
+            if user.email == email:
+                return user
+        return None
+
     async def create(self, user):
         for existing in self.users.values():
             if existing.username == user.username:
