@@ -10,8 +10,7 @@ from app.exceptions.user_exceptions import (
 )
 from app.models.user import User
 from app.schemas.user import UserSignUpRequestSchema, UserUpdateRequestSchema
-from app.utils.jwt import JWTHelper
-from app.utils.password import PasswordHelper
+from app.services.user_service import UserService
 
 
 
@@ -135,7 +134,7 @@ async def test_delete_user_raises_when_not_owner(service, uow):
 
 
 async def test_authenticate_user_returns_token_for_valid_credentials(service, uow):
-    user = make_user(password=PasswordHelper.hash_password("plain-password"))
+    user = make_user(password=UserService.hash_password("plain-password"))
     uow.users.users[user.id] = user
 
     token = await service.authenticate_user("johndoe", "plain-password")
@@ -150,7 +149,7 @@ async def test_authenticate_user_raises_when_user_missing(service):
 
 
 async def test_authenticate_user_raises_when_password_invalid(service, uow):
-    user = make_user(password=PasswordHelper.hash_password("plain-password"))
+    user = make_user(password=UserService.hash_password("plain-password"))
     uow.users.users[user.id] = user
 
     with pytest.raises(InvalidCredentialsException):
@@ -160,7 +159,7 @@ async def test_authenticate_user_raises_when_password_invalid(service, uow):
 async def test_get_current_user_returns_user_for_valid_token(service, uow):
     user = make_user()
     uow.users.users[user.id] = user
-    token = JWTHelper.create_access_token(user.id, user.username, user.email)
+    token = UserService.create_access_token(user.id, user.username, user.email)
 
     result = await service.get_current_user(token)
 
@@ -170,7 +169,7 @@ async def test_get_current_user_returns_user_for_valid_token(service, uow):
 async def test_refresh_access_token_returns_new_access_token(service, uow):
     user = make_user()
     uow.users.users[user.id] = user
-    refresh_token = JWTHelper.create_refresh_token(user.id, user.username, user.email)
+    refresh_token = UserService.create_refresh_token(user.id, user.username, user.email)
 
     token = await service.refresh_access_token(refresh_token)
 
