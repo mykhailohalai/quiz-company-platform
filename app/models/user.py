@@ -16,10 +16,10 @@ class User(TimeStampMixin, Base):
     __tablename__ = "users"
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
-    fname: Mapped[str] = mapped_column(String(50), nullable=False)
-    sname: Mapped[str] = mapped_column(String(50), nullable=False)
+    fname: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    sname: Mapped[str | None] = mapped_column(String(50), nullable=True)
     username: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    email: Mapped[str] = mapped_column(String(100), nullable=True, unique=True)
+    email: Mapped[str | None] = mapped_column(String(100), nullable=True, unique=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
 
 

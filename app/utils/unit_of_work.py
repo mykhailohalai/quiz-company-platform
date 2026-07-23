@@ -21,3 +21,7 @@ class UnitOfWork:
 
     async def rollback(self):
         await self.session.rollback()
+
+
+def get_uow() -> UnitOfWork:
+    return UnitOfWork()
