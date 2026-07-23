@@ -126,3 +126,42 @@ After starting the application verify database connections:
 | `GET /` | Application health check |
 | `GET /db-health` | PostgreSQL connection check |
 | `GET /redis-health` | Redis connection check |
+
+## Database Migrations
+
+### With Docker Compose
+
+Generate a new migration based on model changes:
+
+```bash
+docker exec back-end-backend-1 alembic revision --autogenerate -m "description"
+```
+
+Apply all pending migrations:
+
+```bash
+docker exec back-end-backend-1 alembic upgrade head
+```
+
+Rollback the last migration:
+
+```bash
+docker exec back-end-backend-1 alembic downgrade -1
+```
+
+Check current migration state:
+
+```bash
+docker exec back-end-backend-1 alembic current
+```
+
+### Without Docker Compose
+
+Set `DB_HOST=localhost` in `.env`, then run the same commands directly:
+
+```bash
+alembic revision --autogenerate -m "description"
+alembic upgrade head
+alembic downgrade -1
+alembic current
+```
