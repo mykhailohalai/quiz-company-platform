@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 
 from app.exceptions.user_exceptions import (
+    ForbiddenException,
     InvalidCredentialsException,
     UserAlreadyExistsException,
     UserNotFoundException,
@@ -72,7 +73,7 @@ async def test_update_user_hashes_new_password(service, uow):
     uow.users.users[user.id] = user
     data = UserUpdateRequestSchema(password="new-plain-password")
 
-    updated = await service.update_user(user.id, data)
+    updated = await service.update_user(user.id, user.id, data)
 
     assert updated.password != "new-plain-password"
     assert updated.password != "old-hashed-password"
@@ -84,32 +85,52 @@ async def test_update_user_keeps_password_when_not_provided(service, uow):
     uow.users.users[user.id] = user
     data = UserUpdateRequestSchema(username="newname")
 
-    updated = await service.update_user(user.id, data)
+    updated = await service.update_user(user.id, user.id, data)
 
     assert updated.username == "newname"
     assert updated.password == "old-hashed-password"
 
 
 async def test_update_user_raises_when_missing(service):
+    user_id = uuid4()
     data = UserUpdateRequestSchema(username="newname")
 
     with pytest.raises(UserNotFoundException):
-        await service.update_user(uuid4(), data)
+        await service.update_user(user_id, user_id, data)
+
+
+async def test_update_user_raises_when_not_owner(service, uow):
+    user = make_user()
+    uow.users.users[user.id] = user
+    data = UserUpdateRequestSchema(username="newname")
+
+    with pytest.raises(ForbiddenException):
+        await service.update_user(user.id, uuid4(), data)
 
 
 async def test_delete_user_removes_from_repository(service, uow):
     user = make_user()
     uow.users.users[user.id] = user
 
-    await service.delete_user(user.id)
+    await service.delete_user(user.id, user.id)
 
     assert user.id not in uow.users.users
     assert uow.committed is True
 
 
 async def test_delete_user_raises_when_missing(service):
+    user_id = uuid4()
+
     with pytest.raises(UserNotFoundException):
-        await service.delete_user(uuid4())
+        await service.delete_user(user_id, user_id)
+
+
+async def test_delete_user_raises_when_not_owner(service, uow):
+    user = make_user()
+    uow.users.users[user.id] = user
+
+    with pytest.raises(ForbiddenException):
+        await service.delete_user(user.id, uuid4())
 
 
 async def test_authenticate_user_returns_token_for_valid_credentials(service, uow):
