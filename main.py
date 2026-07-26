@@ -87,6 +87,13 @@ async def server_error_handler(request: Request, ex: Exception):
         content={"detail": "Server error"}
     )
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
+logger = logging.getLogger(__name__)
+
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
