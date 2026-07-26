@@ -127,6 +127,24 @@ After starting the application verify database connections:
 | `GET /db-health` | PostgreSQL connection check |
 | `GET /redis-health` | Redis connection check |
 
+### Hosted on AWS
+
+The application is also deployed on AWS (ECS, with RDS PostgreSQL and ElastiCache Redis):
+
+```bash
+curl https://ba-f67ba884c94849e6a405d79f67a67b67.ecs.eu-north-1.on.aws/
+curl https://ba-f67ba884c94849e6a405d79f67a67b67.ecs.eu-north-1.on.aws/db-health
+curl https://ba-f67ba884c94849e6a405d79f67a67b67.ecs.eu-north-1.on.aws/redis-health
+```
+
+A healthy response looks like:
+
+```json
+{"status_code": 200, "detail": "ok", "result": "working"}
+{"status_code": 200, "detail": "ok", "result": "db connected"}
+{"status_code": 200, "detail": "ok", "result": "redis connected"}
+```
+
 ## Database Migrations
 
 ### With Docker Compose
