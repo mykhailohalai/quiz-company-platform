@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import and_, func, select
 
 from app.repositories.base_repository import BaseRepository
-from app.models.company_member import CompanyMember, InviteStatus
+from app.models.company_member import CompanyMember, InviteStatus, Role
 from app.schemas.company_member import CompanyMemberUpdateRequestSchema
 from app.exceptions.company_member_exceptions import (
     CompanyMemberAlreadyExistsException,
@@ -57,6 +57,48 @@ class CompanyMemberRepository(
         )
 
         return result.scalars().all(), total
+
+    async def get_admins_by_company(self, company_id: UUID, skip: int, limit: int):
+        total = await self.session.scalar(
+            select(func.count())
+            .select_from(CompanyMember)
+            .where(
+                and_(
+                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.company_id == company_id,
+                    CompanyMember.role == Role.Admin
+                )
+            )
+        )
+
+        result = await self.session.execute(
+            select(CompanyMember)
+            .where(
+                and_(
+                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.company_id == company_id,
+                    CompanyMember.role == Role.Admin,
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+
+        return result.scalars().all(), total
+
+    async def get_admin_by_id(self, admin_id: UUID, company_id: UUID):
+        admin = await self.session.execute(
+            select(CompanyMember).where(
+                and_(
+                    CompanyMember.role == Role.Admin,
+                    CompanyMember.user_id == admin_id,
+                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.company_id == company_id,
+                )
+            )
+        )
+
+        return admin.scalar_one_or_none()
 
     # Owner invites user
     async def get_invitation_by_user(self, user_id: UUID):

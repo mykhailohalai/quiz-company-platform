@@ -4,7 +4,7 @@ from app.exceptions.company_member_exceptions import (
     CompanyMemberAlreadyExistsException,
     CompanyMemberNotFoundException,
 )
-from app.models.company_member import InviteStatus
+from app.models.company_member import InviteStatus, Role
 
 
 class FakeCompanyMemberRepository:
@@ -65,5 +65,18 @@ class FakeCompanyMemberRepository:
         result = [
             m for m in self.members.values()
             if m.user_id == user_id and m.status == InviteStatus.PENDING_REQUEST
+        ]
+        return result[skip:skip + limit], len(result)
+
+    async def get_admin_by_id(self, user_id: UUID, company_id: UUID):
+        for m in self.members.values():
+            if m.user_id == user_id and m.company_id == company_id and m.role == Role.Admin:
+                return m
+        return None
+
+    async def get_admins_by_company(self, company_id: UUID, skip: int = 0, limit: int = 10):
+        result = [
+            m for m in self.members.values()
+            if m.company_id == company_id and m.role == Role.Admin and m.status == InviteStatus.Active
         ]
         return result[skip:skip + limit], len(result)

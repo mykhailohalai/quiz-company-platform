@@ -1,12 +1,11 @@
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from fastapi import APIRouter, Query, status, Depends, Security
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Query, status, Depends
 
-
+from app.models.user import User
 from app.schemas.company import CompanyDetailResponseSchema, CompanyUpdateRequestSchema, CompanyCreateRequestSchema, PaginatedCompanyDetailResponseSchema
 from app.services.company_service import CompanyService, get_company_service
-from app.services.user_service import UserService, get_user_service
+from app.dependencies import get_current_user_dep
 
 company_router = APIRouter()
 
@@ -23,11 +22,9 @@ def to_company_response(company, owner) -> CompanyDetailResponseSchema:
 )
 async def create_company(
     company_request: CompanyCreateRequestSchema,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    current_user: User = Depends(get_current_user_dep),
     company_service: CompanyService = Depends(get_company_service),
-    user_service: UserService = Depends(get_user_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     company = await company_service.create_company(current_user.id, company_request)
     return to_company_response(company, current_user)
 
@@ -72,11 +69,9 @@ async def get_all_companies(
 async def update_company(
     company_id: UUID,
     data: CompanyUpdateRequestSchema,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    current_user: User = Depends(get_current_user_dep),
     company_service: CompanyService = Depends(get_company_service),
-    user_service: UserService = Depends(get_user_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     updated_company = await company_service.update_company(current_user.id, company_id, data)
     return to_company_response(updated_company, current_user)
 
@@ -87,9 +82,7 @@ async def update_company(
 )
 async def delete_company(
     company_id: UUID,
-    user_details: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+    current_user: User = Depends(get_current_user_dep),
     company_service: CompanyService = Depends(get_company_service),
-    user_service: UserService = Depends(get_user_service),
 ):
-    current_user = await user_service.get_current_user(user_details.credentials)
     await company_service.delete_company(current_user.id, company_id)
