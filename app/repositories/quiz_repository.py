@@ -82,6 +82,15 @@ class QuizRepository(BaseRepository[Quiz, QuizUpdateRequestSchema]):
             raise QuizNotFoundException(quiz_id)
         return quiz
 
+    async def get_correct_answer_ids(self, quiz_id: UUID) -> dict[UUID, list[UUID]]:
+        result = await self.session.execute(
+            select(Question.id, func.array_agg(Answer.id))
+            .join(Answer, Answer.question_id == Question.id)
+            .where(Question.quiz_id == quiz_id, Answer.is_correct.is_(True))
+            .group_by(Question.id)
+        )
+        return dict(result.all())
+
     async def get_by_company(
         self, company_id: UUID, skip: int, limit: int
     ) -> tuple[list[Quiz], int]:
