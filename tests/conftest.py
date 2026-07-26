@@ -4,6 +4,7 @@ import pytest
 
 from app.services.user_service import UserService, get_user_service
 from app.services.company_service import CompanyService, get_company_service
+from app.services.company_member_service import CompanyMemberService, get_company_member_service
 from main import app
 from fakes.fake_unit_of_work import FakeUnitOfWork
 
@@ -39,5 +40,20 @@ def mock_company_service(uow):
     app.dependency_overrides[get_company_service] = lambda: company_service
 
     yield company_service
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def company_member_service(uow):
+    return CompanyMemberService(uow)
+
+
+@pytest.fixture
+def mock_company_member_service():
+    company_member_service = MagicMock()
+    app.dependency_overrides[get_company_member_service] = lambda: company_member_service
+
+    yield company_member_service
 
     app.dependency_overrides.clear()
