@@ -4,6 +4,7 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
+        command: sh -c "alembic upgrade head && python main.py"
         ports:
             - "${APP_PORT}:8000"
         volumes:

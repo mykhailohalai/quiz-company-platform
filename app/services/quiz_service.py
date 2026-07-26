@@ -112,10 +112,8 @@ class QuizService:
         self, company_id: UUID, user_id: UUID, quiz_id: UUID
     ) -> Quiz:
         async with self.uow:
-            member = (
-                await self.uow.company_members.get_active_member_by_company_and_user(
-                    company_id, user_id
-                )
+            member = await self.uow.company_members.get_active_member(
+                company_id, user_id
             )
             if member is None:
                 raise ForbiddenException()
@@ -125,10 +123,8 @@ class QuizService:
         self, company_id: UUID, quiz_id: UUID, user_id: UUID, data: QuizSubmitSchema
     ) -> QuizResult:
         async with self.uow:
-            member = (
-                await self.uow.company_members.get_active_member_by_company_and_user(
-                    company_id, user_id
-                )
+            member = await self.uow.company_members.get_active_member(
+                company_id, user_id
             )
             if member is None:
                 raise ForbiddenException()
@@ -146,23 +142,22 @@ class QuizService:
                 if days_since < quiz.frequency:
                     raise QuizFrequencyException()
 
-            correct_map = {
-                q.id: {a.id for a in q.answers if a.is_correct} for q in quiz.questions
-            }
+            correct_map = await self.uow.quizzes.get_correct_answer_ids(quiz_id)
             answered_at = datetime.now(timezone.utc)
-            redis_answers = [
-                QuizAnswerRedisSchema(
-                    user_id=user_id,
-                    company_id=company_id,
-                    quiz_id=quiz_id,
-                    question_id=ua.question_id,
-                    answer_ids=ua.answer_ids,
-                    is_correct=set(ua.answer_ids)
-                    == correct_map.get(ua.question_id, set()),
-                    answered_at=answered_at,
+            redis_answers = []
+            for ua in data.answers:
+                is_correct = set(ua.answer_ids) == set(correct_map.get(ua.question_id, []))
+                redis_answers.append(
+                    QuizAnswerRedisSchema(
+                        user_id=user_id,
+                        company_id=company_id,
+                        quiz_id=quiz_id,
+                        question_id=ua.question_id,
+                        answer_ids=ua.answer_ids,
+                        is_correct=is_correct,
+                        answered_at=answered_at,
+                    )
                 )
-                for ua in data.answers
-            ]
             correct_answers = sum(1 for a in redis_answers if a.is_correct)
 
             result = QuizResult(
@@ -223,7 +218,7 @@ class QuizService:
             return await self.uow.quiz_results.get_quiz_answers_by_company(company_id)
 
     async def get_quiz_results_for_export(
-        self, current_user_id: UUID, company_id: UUID, quiz_id: UUID
+    self, current_user_id: UUID, company_id: UUID, quiz_id: UUID
     ):
         async with self.uow:
             await self._check_owner_or_admin(company_id, current_user_id)

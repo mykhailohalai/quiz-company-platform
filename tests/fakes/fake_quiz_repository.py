@@ -41,10 +41,11 @@ class FakeQuizRepository:
         result = [q for q in self.quizzes.values() if q.company_id == company_id]
         return result[skip:skip + limit], len(result)
 
-    async def get_available_quizzes_for_user(self, user_id: UUID):
-        members = self.company_members.members.values() if self.company_members else []
-        company_ids = {
-            m.company_id for m in members
-            if m.user_id == user_id and m.status == InviteStatus.ACTIVE
+    async def get_correct_answer_ids(self, quiz_id: UUID) -> dict[UUID, list[UUID]]:
+        quiz = self.quizzes.get(quiz_id)
+        if quiz is None:
+            return {}
+        return {
+            q.id: [a.id for a in q.answers if a.is_correct]
+            for q in quiz.questions
         }
-        return [q for q in self.quizzes.values() if q.company_id in company_ids]

@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 
 from app.dependencies import get_current_user_dep, get_quiz_service
 from app.models.user import User
+from app.utils.formatter import Formatter
 from app.schemas.quiz import (
     QuizCreateRequestSchema,
     QuizUpdateRequestSchema,
