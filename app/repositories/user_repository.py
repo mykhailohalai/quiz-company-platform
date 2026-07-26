@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from uuid import UUID
 
 from app.models.user import User
 from app.repositories.base_repository import BaseRepository

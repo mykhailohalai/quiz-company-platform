@@ -8,10 +8,11 @@ import jwt
 from pydantic import EmailStr
 
 from app.core import settings
-from app.exceptions.user_exceptions import ForbiddenException, InvalidCredentialsException
+from app.exceptions.user_exceptions import InvalidCredentialsException
+from app.exceptions.general_exceptions import ForbiddenException
 from app.models.user import User
 from app.schemas.user import UserSignUpRequestSchema, UserUpdateRequestSchema
-from app.schemas.token import RefreshTokenRequestSchema, TokenResponseSchema
+from app.schemas.token import TokenResponseSchema
 from app.utils.unit_of_work import UnitOfWork, get_uow
 
 logger = logging.getLogger(__name__)

@@ -1,10 +1,12 @@
 from fakes.fake_session import FakeSession
 from fakes.fake_user_repository import FakeUserRepository
+from fakes.fake_company_repository import FakeCompanyRepository
 
 
 class FakeUnitOfWork:
-    def __init__(self, users=None):
+    def __init__(self, users=None, companies=None):
         self.users = FakeUserRepository(users)
+        self.companies = FakeCompanyRepository(companies)
         self.session = FakeSession()
         self.committed = False
 
