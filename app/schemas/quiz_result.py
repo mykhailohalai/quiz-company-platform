@@ -34,3 +34,13 @@ class QuizResultResponseSchema(BaseModel):
 
 class AverageScoreResponseSchema(BaseModel):
     average_score: float
+
+
+class QuizAnswerRedisSchema(BaseModel):
+    user_id: UUID
+    company_id: UUID
+    quiz_id: UUID
+    question_id: UUID
+    answer_ids: list[UUID]
+    is_correct: bool
+    answered_at: datetime
