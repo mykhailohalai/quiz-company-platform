@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from app.exceptions.general_exceptions import ForbiddenException
 
 from app.exceptions.quiz_exceptions import QuizFrequencyException
-from app.models.quiz import Quiz
+from app.models.quiz import Quiz, Question, Answer
 from app.models.quiz_result import QuizResult
 from app.schemas.quiz_result import QuizAnswerRedisSchema, QuizSubmitSchema
 from app.utils.unit_of_work import UnitOfWork, get_uow
