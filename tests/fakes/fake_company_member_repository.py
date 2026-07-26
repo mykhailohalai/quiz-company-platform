@@ -23,9 +23,9 @@ class FakeCompanyMemberRepository:
                 return m
         return None
 
-    async def get_active_member_by_company_and_user(self, company_id: UUID, user_id: UUID):
+    async def get_active_member(self, company_id: UUID, user_id: UUID):
         for m in self.members.values():
-            if m.company_id == company_id and m.user_id == user_id and m.status == InviteStatus.Active:
+            if m.company_id == company_id and m.user_id == user_id and m.status == InviteStatus.ACTIVE:
                 return m
         return None
 
@@ -76,13 +76,13 @@ class FakeCompanyMemberRepository:
 
     async def get_admin_by_id(self, user_id: UUID, company_id: UUID):
         for m in self.members.values():
-            if m.user_id == user_id and m.company_id == company_id and m.role == Role.Admin:
+            if m.user_id == user_id and m.company_id == company_id and m.role == Role.ADMIN:
                 return m
         return None
 
     async def get_admins_by_company(self, company_id: UUID, skip: int = 0, limit: int = 10):
         result = [
             m for m in self.members.values()
-            if m.company_id == company_id and m.role == Role.Admin and m.status == InviteStatus.Active
+            if m.company_id == company_id and m.role == Role.ADMIN and m.status == InviteStatus.ACTIVE
         ]
         return result[skip:skip + limit], len(result)

@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Generic, TypeVar
 from uuid import UUID
@@ -5,6 +6,8 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 EntityType = TypeVar("EntityType")
 UpdateSchemaType = TypeVar("UpdateSchemaType")
@@ -34,6 +37,7 @@ class BaseRepository(Generic[EntityType, UpdateSchemaType]):
         try:
             await self.session.flush()
         except IntegrityError as ex:
+            logger.error("IntegrityError on create: %s", ex.orig)
             raise self.already_exists_exception(self._conflict_field(ex))
         return entity
 

@@ -10,6 +10,7 @@ from app.models.mixins import TimeStampMixin
 class Role(Enum):
     OWNER = auto()
     MEMBER = auto()
+    ADMIN = auto()
 
 
 class InviteStatus(Enum):

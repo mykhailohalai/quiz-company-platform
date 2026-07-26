@@ -275,19 +275,19 @@ async def test_get_members_returns_only_active(company_member_service, uow):
 async def test_appoint_admin_sets_role(company_member_service, uow):
     owner_id = uuid4()
     company = make_company(owner_id=owner_id)
-    member = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Member)
+    member = make_member(company_id=company.id, status=InviteStatus.ACTIVE, role=Role.MEMBER)
     uow.companies.companies[company.id] = company
     uow.company_members.members[member.id] = member
 
     result = await company_member_service.appoint_admin(company.id, member.user_id, owner_id)
 
-    assert result.role == Role.Admin
+    assert result.role == Role.ADMIN
     assert uow.committed is True
 
 
 async def test_appoint_admin_raises_when_not_owner(company_member_service, uow):
     company = make_company()
-    member = make_member(company_id=company.id, status=InviteStatus.Active)
+    member = make_member(company_id=company.id, status=InviteStatus.ACTIVE)
     uow.companies.companies[company.id] = company
     uow.company_members.members[member.id] = member
 
@@ -298,7 +298,7 @@ async def test_appoint_admin_raises_when_not_owner(company_member_service, uow):
 async def test_appoint_admin_raises_when_not_active_member(company_member_service, uow):
     owner_id = uuid4()
     company = make_company(owner_id=owner_id)
-    member = make_member(company_id=company.id, status=InviteStatus.Pending_invite)
+    member = make_member(company_id=company.id, status=InviteStatus.PENDING_INVITE)
     uow.companies.companies[company.id] = company
     uow.company_members.members[member.id] = member
 
@@ -311,19 +311,19 @@ async def test_appoint_admin_raises_when_not_active_member(company_member_servic
 async def test_remove_admin_sets_member_role(company_member_service, uow):
     owner_id = uuid4()
     company = make_company(owner_id=owner_id)
-    admin = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Admin)
+    admin = make_member(company_id=company.id, status=InviteStatus.ACTIVE, role=Role.ADMIN)
     uow.companies.companies[company.id] = company
     uow.company_members.members[admin.id] = admin
 
     result = await company_member_service.remove_admin(company.id, admin.user_id, owner_id)
 
-    assert result.role == Role.Member
+    assert result.role == Role.MEMBER
     assert uow.committed is True
 
 
 async def test_remove_admin_raises_when_not_owner(company_member_service, uow):
     company = make_company()
-    admin = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Admin)
+    admin = make_member(company_id=company.id, status=InviteStatus.ACTIVE, role=Role.ADMIN)
     uow.companies.companies[company.id] = company
     uow.company_members.members[admin.id] = admin
 
@@ -334,7 +334,7 @@ async def test_remove_admin_raises_when_not_owner(company_member_service, uow):
 async def test_remove_admin_raises_when_not_admin(company_member_service, uow):
     owner_id = uuid4()
     company = make_company(owner_id=owner_id)
-    member = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Member)
+    member = make_member(company_id=company.id, status=InviteStatus.ACTIVE, role=Role.MEMBER)
     uow.companies.companies[company.id] = company
     uow.company_members.members[member.id] = member
 
@@ -347,9 +347,9 @@ async def test_remove_admin_raises_when_not_admin(company_member_service, uow):
 async def test_get_admins_returns_only_admins(company_member_service, uow):
     user_id = uuid4()
     company = make_company()
-    admin = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Admin)
-    member = make_member(company_id=company.id, status=InviteStatus.Active, role=Role.Member)
-    current_user = make_member(company_id=company.id, user_id=user_id, status=InviteStatus.Active)
+    admin = make_member(company_id=company.id, status=InviteStatus.ACTIVE, role=Role.ADMIN)
+    member = make_member(company_id=company.id, status=InviteStatus.ACTIVE, role=Role.MEMBER)
+    current_user = make_member(company_id=company.id, user_id=user_id, status=InviteStatus.ACTIVE)
     uow.companies.companies[company.id] = company
     uow.company_members.members[admin.id] = admin
     uow.company_members.members[member.id] = member

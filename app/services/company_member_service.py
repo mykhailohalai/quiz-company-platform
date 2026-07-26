@@ -218,13 +218,13 @@ class CompanyMemberService:
             member = await self.uow.company_members.get_by_company_and_user(
                 company.id, user_id
             )
-            if member is None or member.status != InviteStatus.Active:
+            if member is None or member.status != InviteStatus.ACTIVE:
                 raise CompanyMemberNotFoundException(user_id)
 
-            if member.role == Role.Admin:
+            if member.role == Role.ADMIN:
                 raise CompanyMemberAdminException(user_id)
 
-            member.role = Role.Admin
+            member.role = Role.ADMIN
             await self.uow.commit()
             logger.info("Admin appointed: user_id=%s company_id=%s", user_id, company_id)
 
@@ -249,7 +249,7 @@ class CompanyMemberService:
             if admin is None:
                 raise CompanyMemberNotAdminException(user_id)
 
-            admin.role = Role.Member
+            admin.role = Role.MEMBER
             await self.uow.commit()
             logger.info("Admin removed: user_id=%s company_id=%s", user_id, company_id)
 
@@ -264,7 +264,7 @@ class CompanyMemberService:
             member = await self.uow.company_members.get_by_company_and_user(
                 company_id, current_user_id
             )
-            if member is None or member.status != InviteStatus.Active:
+            if member is None or member.status != InviteStatus.ACTIVE:
                 raise ForbiddenException()
 
             return await self.uow.company_members.get_admins_by_company(

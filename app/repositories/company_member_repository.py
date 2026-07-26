@@ -46,6 +46,20 @@ class CompanyMemberRepository(
         )
         return result.scalar_one_or_none()
 
+    async def get_active_member(
+        self, company_id: UUID, user_id: UUID
+    ):
+        result = await self.session.execute(
+            select(CompanyMember).where(
+                and_(
+                    CompanyMember.company_id == company_id,
+                    CompanyMember.user_id == user_id,
+                    CompanyMember.status == InviteStatus.ACTIVE,
+                )
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_members_by_company(self, company_id: UUID, skip: int, limit: int):
         total = await self.session.scalar(
             select(func.count())
@@ -78,9 +92,9 @@ class CompanyMemberRepository(
             .select_from(CompanyMember)
             .where(
                 and_(
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                     CompanyMember.company_id == company_id,
-                    CompanyMember.role == Role.Admin,
+                    CompanyMember.role == Role.ADMIN,
                 )
             )
         )
@@ -89,9 +103,9 @@ class CompanyMemberRepository(
             select(CompanyMember)
             .where(
                 and_(
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                     CompanyMember.company_id == company_id,
-                    CompanyMember.role == Role.Admin,
+                    CompanyMember.role == Role.ADMIN,
                 )
             )
             .offset(skip)
@@ -104,9 +118,9 @@ class CompanyMemberRepository(
         admin = await self.session.execute(
             select(CompanyMember).where(
                 and_(
-                    CompanyMember.role == Role.Admin,
+                    CompanyMember.role == Role.ADMIN,
                     CompanyMember.user_id == admin_id,
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                     CompanyMember.company_id == company_id,
                 )
             )
