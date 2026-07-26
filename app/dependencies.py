@@ -5,6 +5,7 @@ from app.core.redis import get_redis
 from app.models.user import User
 from app.services.company_member_service import CompanyMemberService
 from app.services.company_service import CompanyService
+from app.services.notification_service import NotificationService
 from app.services.quiz_service import QuizService
 from app.services.redis_service import RedisService
 from app.services.user_service import UserService
@@ -30,8 +31,14 @@ def get_company_member_service(uow: UnitOfWork = Depends(get_uow)) -> CompanyMem
     return CompanyMemberService(uow)
 
 
+def get_notification_service(uow: UnitOfWork = Depends(get_uow)):
+    return NotificationService(uow)
+
+
 def get_quiz_service(
     uow: UnitOfWork = Depends(get_uow),
     redis: Redis = Depends(get_redis),
+    notification: NotificationService = Depends(get_notification_service),
 ) -> QuizService:
-    return QuizService(uow, RedisService(redis))
+    return QuizService(uow, RedisService(redis), notification)
+

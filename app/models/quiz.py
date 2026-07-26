@@ -2,14 +2,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Boolean, ForeignKey, Integer, Uuid, Enum as SAEnum, String
 
 from uuid import UUID, uuid4
-from enum import Enum, auto
+from enum import Enum
 
 from app.core.database import Base
 from app.models.mixins import TimeStampMixin
 
 class QuestionType(str, Enum):
-    SingleAnswer = auto()
-    MultipleAnswer = auto()
+    SINGLE_ANSWER = "single answer"
+    MULTIPLE_ANSWER = "multiple answer"
 
 class Quiz(TimeStampMixin, Base):
     __tablename__ = "quizzes"

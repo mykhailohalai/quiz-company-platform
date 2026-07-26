@@ -2,22 +2,22 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import ForeignKey, Uuid, Enum as SAEnum
 
 from uuid import UUID, uuid4
-from enum import Enum, auto
+from enum import Enum
 
 from app.core.database import Base
 from app.models.mixins import TimeStampMixin
 
 class Role(Enum):
-    OWNER = auto()
-    MEMBER = auto()
-    ADMIN = auto()
+    OWNER = "owner"
+    MEMBER = "member"
+    ADMIN = "admin"
 
 
 class InviteStatus(Enum):
-    PENDING_INVITE = auto()
-    PENDING_REQUEST = auto()
-    ACTIVE = auto()
-    REJECTED = auto()
+    PENDING_INVITE = "pending invite"
+    PENDING_REQUEST = "pending request"
+    ACTIVE = "active"
+    REJECTED = "rejected"
 
 class CompanyMember(TimeStampMixin, Base):
     __tablename__="company_members"

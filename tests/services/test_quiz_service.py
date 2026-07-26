@@ -23,7 +23,7 @@ def make_company(**kwargs):
         name="Acme",
         description="desc",
         owner_id=uuid4(),
-        visibility=CompanyVisibility.Visible_to_all,
+        visibility=CompanyVisibility.VISIBLE_TO_ALL,
     )
     defaults.update(kwargs)
     return Company(**defaults)
@@ -61,7 +61,7 @@ def make_quiz_data(**kwargs):
         questions=[
             QuestionCreateRequestSchema(
                 title="Question 1",
-                question_type=QuestionType.SingleAnswer,
+                question_type=QuestionType.SINGLE_ANSWER,
                 answers=[
                     AnswerCreateRequestSchema(text="A", is_correct=True),
                     AnswerCreateRequestSchema(text="B", is_correct=False),
@@ -69,7 +69,7 @@ def make_quiz_data(**kwargs):
             ),
             QuestionCreateRequestSchema(
                 title="Question 2",
-                question_type=QuestionType.SingleAnswer,
+                question_type=QuestionType.SINGLE_ANSWER,
                 answers=[
                     AnswerCreateRequestSchema(text="C", is_correct=False),
                     AnswerCreateRequestSchema(text="D", is_correct=True),
@@ -197,7 +197,7 @@ async def test_create_quiz_with_multiple_correct_answers(quiz_service, uow):
         questions=[
             QuestionCreateRequestSchema(
                 title="Question 1",
-                question_type=QuestionType.MultipleAnswer,
+                question_type=QuestionType.MULTIPLE_ANSWER,
                 answers=[
                     AnswerCreateRequestSchema(text="A", is_correct=True),
                     AnswerCreateRequestSchema(text="B", is_correct=True),
@@ -206,7 +206,7 @@ async def test_create_quiz_with_multiple_correct_answers(quiz_service, uow):
             ),
             QuestionCreateRequestSchema(
                 title="Question 2",
-                question_type=QuestionType.MultipleAnswer,
+                question_type=QuestionType.MULTIPLE_ANSWER,
                 answers=[
                     AnswerCreateRequestSchema(text="D", is_correct=True),
                     AnswerCreateRequestSchema(text="E", is_correct=True),

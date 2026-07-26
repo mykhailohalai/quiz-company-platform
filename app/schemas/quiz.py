@@ -25,7 +25,7 @@ class AnswerResponseSchema(BaseModel):
 class QuestionCreateRequestSchema(BaseModel):
     title: str = Field(..., min_length=1)
     answers: list[AnswerCreateRequestSchema] = Field(..., min_length=2, max_length=4)
-    question_type: QuestionType = Field(default=QuestionType.MultipleAnswer)
+    question_type: QuestionType = Field(default=QuestionType.MULTIPLE_ANSWER)
 
 
 class QuestionResponseSchema(BaseModel):

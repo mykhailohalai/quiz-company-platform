@@ -17,7 +17,7 @@ class FakeCompanyRepository:
         companies = [
             company
             for company in self.companies.values()
-            if company.visibility == CompanyVisibility.Visible_to_all
+            if company.visibility == CompanyVisibility.VISIBLE_TO_ALL
         ]
         return companies[skip : skip + limit], len(companies)
 

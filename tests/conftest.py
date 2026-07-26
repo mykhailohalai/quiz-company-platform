@@ -6,6 +6,7 @@ from app.dependencies import get_company_member_service, get_company_service, ge
 from app.services.user_service import UserService
 from app.services.company_service import CompanyService
 from app.services.company_member_service import CompanyMemberService
+from app.services.notification_service import NotificationService
 from app.services.quiz_service import QuizService
 from app.services.redis_service import RedisService
 from main import app
@@ -60,8 +61,13 @@ def mock_redis_service():
 
 
 @pytest.fixture
-def quiz_service(uow, mock_redis_service):
-    return QuizService(uow, mock_redis_service)
+def notification_service(uow):
+    return NotificationService(uow)
+
+
+@pytest.fixture
+def quiz_service(uow, mock_redis_service, notification_service):
+    return QuizService(uow, mock_redis_service, notification_service)
 
 
 @pytest.fixture

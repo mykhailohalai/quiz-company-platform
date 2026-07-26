@@ -7,7 +7,7 @@ from app.schemas.user import UserDetailResponseSchema
 class CompanyCreateRequestSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=1500)  
-    visibility: CompanyVisibility = Field(default=CompanyVisibility.Visible_to_all)
+    visibility: CompanyVisibility = Field(default=CompanyVisibility.VISIBLE_TO_ALL)
 
 
 class CompanyUpdateRequestSchema(BaseModel):

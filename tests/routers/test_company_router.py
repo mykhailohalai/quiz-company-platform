@@ -35,7 +35,7 @@ def make_company(**kwargs):
         description="desc",
         owner_id=owner.id,
         owner=owner,
-        visibility=CompanyVisibility.Visible_to_all,
+        visibility=CompanyVisibility.VISIBLE_TO_ALL,
     )
     defaults.update(kwargs)
     return Company(**defaults)

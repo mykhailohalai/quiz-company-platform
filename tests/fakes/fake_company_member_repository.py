@@ -39,6 +39,12 @@ class FakeCompanyMemberRepository:
         del self.members[member_id]
         return True
 
+    async def get_all_members_by_company(self, company_id: UUID):
+        return [
+            m for m in self.members.values()
+            if m.company_id == company_id and m.status == InviteStatus.ACTIVE
+        ]
+
     async def get_members_by_company(self, company_id: UUID, skip: int = 0, limit: int = 10):
         result = [
             m for m in self.members.values()

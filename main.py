@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
 
+from app.routers.notification import notification_router
 from app.routers import router
 from app.routers.user import user_router
 from app.routers.company import company_router
@@ -24,6 +25,7 @@ from app.exceptions.company_member_exceptions import (
     CompanyMemberNotFoundException,
     CompanyMemberAlreadyExistsException,
 )
+from app.exceptions.notification_exceptions import NotificationNotFoundException
 from app.exceptions.quiz_exceptions import (
     QuizNotFoundException,
     QuizAlreadyExistsException,
@@ -49,6 +51,7 @@ app.include_router(user_router)
 app.include_router(company_router)
 app.include_router(company_member_router)
 app.include_router(quiz_router)
+app.include_router(notification_router)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -71,6 +74,7 @@ _HTTP_EXCEPTION_MAP: dict[type[Exception], int] = {
     QuizFrequencyException: status.HTTP_403_FORBIDDEN,
     QuizResultNotFoundException: status.HTTP_404_NOT_FOUND,
     QuizResultAlreadyExistsException: status.HTTP_409_CONFLICT,
+    NotificationNotFoundException: status.HTTP_404_NOT_FOUND,
     ForbiddenException: status.HTTP_403_FORBIDDEN,
 }
 

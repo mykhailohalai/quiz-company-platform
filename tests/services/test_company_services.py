@@ -17,7 +17,7 @@ def make_company(**kwargs):
         name="Acme",
         description="desc",
         owner_id=uuid4(),
-        visibility=CompanyVisibility.Visible_to_all,
+        visibility=CompanyVisibility.VISIBLE_TO_ALL,
     )
     defaults.update(kwargs)
     return Company(**defaults)
@@ -58,8 +58,8 @@ async def test_get_company_by_id_raises_when_missing(company_service):
 
 
 async def test_get_all_companies_returns_only_visible(company_service, uow):
-    visible = make_company(name="Visible", visibility=CompanyVisibility.Visible_to_all)
-    hidden = make_company(name="Hidden", visibility=CompanyVisibility.Hidden)
+    visible = make_company(name="Visible", visibility=CompanyVisibility.VISIBLE_TO_ALL)
+    hidden = make_company(name="Hidden", visibility=CompanyVisibility.HIDDEN)
     uow.companies.companies[visible.id] = visible
     uow.companies.companies[hidden.id] = hidden
 

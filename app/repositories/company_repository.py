@@ -28,7 +28,7 @@ class CompanyRepository(BaseRepository[Company, CompanyUpdateRequestSchema]):
         return result.scalar_one_or_none()
 
     async def get_all_visible(self, skip: int = 0, limit: int = 10) -> tuple[list[Company], int]:
-        condition = Company.visibility == CompanyVisibility.Visible_to_all
+        condition = Company.visibility == CompanyVisibility.VISIBLE_TO_ALL
         total = await self.session.scalar(
             select(func.count()).select_from(Company).where(condition)
         )
