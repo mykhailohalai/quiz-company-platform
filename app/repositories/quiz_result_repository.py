@@ -67,7 +67,10 @@ class QuizResultRepository(BaseRepository[QuizResult, QuizResultResponseSchema])
     async def get_results_by_user_and_company(self, user_id: UUID, company_id: UUID):
         quiz_results = await self.session.execute(
             select(QuizResult).where(
-                and_(QuizResult.company_id == company_id, QuizResult.user_id == user_id)
+                and_(
+                    QuizResult.company_id == company_id,
+                    QuizResult.user_id == user_id
+                )
             )
         )
 

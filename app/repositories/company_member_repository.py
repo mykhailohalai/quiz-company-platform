@@ -19,18 +19,34 @@ class CompanyMemberRepository(
     already_exists_exception = CompanyMemberAlreadyExistsException
 
     async def get_by_company_and_user(self, company_id: UUID, user_id: UUID):
-        requests = await self.session.execute(
+        result = await self.session.execute(
             select(CompanyMember).where(
                 and_(
-                    company_id == CompanyMember.company_id,
-                    user_id == CompanyMember.user_id,
+                    CompanyMember.company_id == company_id,
+                    CompanyMember.user_id == user_id,
                 )
             )
         )
-
-        return requests.scalar_one_or_none()
+        member = result.scalar_one_or_none()
+        if member is None:
+            raise self.not_found_exception(user_id)
+        return member
 
     async def get_active_member_by_company_and_user(
+        self, company_id: UUID, user_id: UUID
+    ):
+        result = await self.session.execute(
+            select(CompanyMember).where(
+                and_(
+                    CompanyMember.company_id == company_id,
+                    CompanyMember.user_id == user_id,
+                    CompanyMember.status == InviteStatus.ACTIVE,
+                )
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_active_member(
         self, company_id: UUID, user_id: UUID
     ):
         result = await self.session.execute(
