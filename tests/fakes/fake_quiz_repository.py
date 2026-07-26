@@ -17,15 +17,21 @@ class FakeQuizRepository:
         self.quizzes[quiz.id] = quiz
         return quiz
 
+    async def create_with_questions(self, quiz, questions_data):
+        self.quizzes[quiz.id] = quiz
+
+    async def update_questions(self, company_id: UUID, quiz_id: UUID, questions_data):
+        pass
+
     async def delete(self, quiz_id: UUID):
         if quiz_id not in self.quizzes:
             raise QuizNotFoundException(quiz_id)
         del self.quizzes[quiz_id]
         return True
 
-    async def get_with_relations(self, quiz_id: UUID):
+    async def get_with_relations(self, company_id: UUID, quiz_id: UUID):
         quiz = self.quizzes.get(quiz_id)
-        if quiz is None:
+        if quiz is None or quiz.company_id != company_id:
             raise QuizNotFoundException(quiz_id)
         return quiz
 

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import selectinload
 
 from app.exceptions.quiz_exceptions import (
@@ -40,9 +40,9 @@ class QuizRepository(BaseRepository[Quiz, QuizUpdateRequestSchema]):
                 ))
 
     async def update_questions(
-        self, quiz_id: UUID, questions_data: list[QuestionCreateRequestSchema]
+        self, company_id: UUID, quiz_id: UUID, questions_data: list[QuestionCreateRequestSchema]
     ) -> None:
-        quiz = await self.get_with_relations(quiz_id)
+        quiz = await self.get_with_relations(company_id, quiz_id)
         for question in quiz.questions:
             await self.session.delete(question)
         await self.session.flush()
@@ -63,11 +63,16 @@ class QuizRepository(BaseRepository[Quiz, QuizUpdateRequestSchema]):
                     question_id=question.id,
                 ))
 
-    async def get_with_relations(self, quiz_id: UUID) -> Quiz:
+    async def get_with_relations(self, company_id: UUID, quiz_id: UUID) -> Quiz:
         result = await self.session.execute(
             select(Quiz)
             .options(selectinload(Quiz.questions).selectinload(Question.answers))
-            .where(Quiz.id == quiz_id)
+            .where(
+                and_(
+                    Quiz.id == quiz_id,
+                    Quiz.company_id == company_id
+                )
+            )
         )
         quiz = result.scalar_one_or_none()
         if quiz is None:

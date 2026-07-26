@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 
+from app.dependencies import get_current_user_dep
 from app.models.user import User
 from app.schemas.quiz import (
     QuizCreateRequestSchema,
@@ -9,8 +10,12 @@ from app.schemas.quiz import (
     QuizResponseSchema,
     PaginatedQuizResponseSchema,
 )
-from app.services.quiz_service import QuizService
-from app.dependencies import get_current_user_dep, get_quiz_service
+from app.schemas.quiz_result import (
+    AverageScoreResponseSchema,
+    QuizResultResponseSchema,
+    QuizSubmitSchema,
+)
+from app.services.quiz_service import QuizService, get_quiz_service
 
 quiz_router = APIRouter()
 
@@ -78,3 +83,61 @@ async def get_quizzes(
         limit=limit,
         has_more=skip + limit < total,
     )
+
+
+@quiz_router.get(
+    "/companies/{company_id}/quizzes/{quiz_id}",
+    response_model=QuizResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def get_quiz_for_member(
+    company_id: UUID,
+    quiz_id: UUID,
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    quiz = await quiz_service.get_quiz_by_company_member(company_id, current_user.id, quiz_id)
+    return QuizResponseSchema.model_validate(quiz)
+
+
+@quiz_router.post(
+    "/companies/{company_id}/quizzes/{quiz_id}/results",
+    response_model=QuizResultResponseSchema,
+    status_code=status.HTTP_201_CREATED,
+)
+async def submit_quiz(
+    company_id: UUID,
+    quiz_id: UUID,
+    data: QuizSubmitSchema,
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    result = await quiz_service.submit_quiz(company_id, quiz_id, current_user.id, data)
+    return QuizResultResponseSchema.model_validate(result)
+
+
+@quiz_router.get(
+    "/companies/{company_id}/users/me/score",
+    response_model=AverageScoreResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def get_average_by_company(
+    company_id: UUID,
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    average_score = await quiz_service.get_average_by_company(current_user.id, company_id)
+    return AverageScoreResponseSchema(average_score=average_score)
+
+
+@quiz_router.get(
+    "/users/me/score",
+    response_model=AverageScoreResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def get_average_by_system(
+    current_user: User = Depends(get_current_user_dep),
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    average_score = await quiz_service.get_average_by_system(current_user.id)
+    return AverageScoreResponseSchema(average_score=average_score)
