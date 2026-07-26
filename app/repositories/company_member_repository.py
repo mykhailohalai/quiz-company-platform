@@ -40,7 +40,7 @@ class CompanyMemberRepository(
                 and_(
                     CompanyMember.company_id == company_id,
                     CompanyMember.user_id == user_id,
-                    CompanyMember.status == InviteStatus.Active,
+                    CompanyMember.status == InviteStatus.ACTIVE,
                 )
             )
         )

@@ -44,3 +44,33 @@ class QuizAnswerRedisSchema(BaseModel):
     answer_ids: list[UUID]
     is_correct: bool
     answered_at: datetime
+
+
+class QuizAverageScoreSchema(BaseModel):
+    quiz_id: UUID
+    user_id: UUID
+    average_score: float
+
+
+class QuizLastAttemptSchema(BaseModel):
+    quiz_id: UUID
+    user_id: UUID
+    last_attempt_at: datetime
+
+
+class WeeklyCompanyScoreSchema(BaseModel):
+    user_id: UUID
+    week_start: datetime
+    average_score: float
+
+
+class WeeklyUserQuizScoreSchema(BaseModel):
+    quiz_id: UUID
+    user_id: UUID
+    week_start: datetime
+    average_score: float
+
+
+class CompanyMemberLastAttemptSchema(BaseModel):
+    user_id: UUID
+    last_attempt_at: datetime | None
