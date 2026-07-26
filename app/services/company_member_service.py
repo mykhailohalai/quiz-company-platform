@@ -37,8 +37,8 @@ class CompanyMemberService:
             invitation = CompanyMember(
                 company_id=company_id,
                 user_id=data.user_id,
-                role=Role.Member,
-                status=InviteStatus.Pending_invite,
+                role=Role.MEMBER,
+                status=InviteStatus.PENDING_INVITE,
             )
             await self.uow.company_members.create(invitation)
             await self.uow.commit()
@@ -66,7 +66,7 @@ class CompanyMemberService:
             if current_user_id != invitation.user_id:
                 raise ForbiddenException()
 
-            invitation.status = InviteStatus.Active
+            invitation.status = InviteStatus.ACTIVE
             await self.uow.commit()
             logger.info("Invitation accepted: id=%s user_id=%s", invitation_id, current_user_id)
         return invitation
@@ -79,7 +79,7 @@ class CompanyMemberService:
             if current_user_id != invitation.user_id:
                 raise ForbiddenException()
 
-            invitation.status = InviteStatus.Rejected
+            invitation.status = InviteStatus.REJECTED
             await self.uow.commit()
             logger.info("Invitation declined: id=%s user_id=%s", invitation_id, current_user_id)
         return invitation
@@ -91,8 +91,8 @@ class CompanyMemberService:
             request = CompanyMember(
                 company_id=data.company_id,
                 user_id=user_id,
-                role=Role.Member,
-                status=InviteStatus.Pending_request,
+                role=Role.MEMBER,
+                status=InviteStatus.PENDING_REQUEST,
             )
             await self.uow.company_members.create(request)
             await self.uow.commit()
@@ -118,7 +118,7 @@ class CompanyMemberService:
             if not await self.uow.companies.is_owner(current_user_id, company):
                 raise ForbiddenException()
 
-            request.status = InviteStatus.Active
+            request.status = InviteStatus.ACTIVE
             await self.uow.commit()
             logger.info("Join request accepted: id=%s", join_request_id)
         return request
@@ -132,7 +132,7 @@ class CompanyMemberService:
             if not await self.uow.companies.is_owner(current_user_id, company):
                 raise ForbiddenException()
 
-            request.status = InviteStatus.Rejected
+            request.status = InviteStatus.REJECTED
             await self.uow.commit()
             logger.info("Join request declined: id=%s", join_request_id)
         return request

@@ -36,35 +36,35 @@ class FakeCompanyMemberRepository:
     async def get_members_by_company(self, company_id: UUID, skip: int = 0, limit: int = 10):
         result = [
             m for m in self.members.values()
-            if m.company_id == company_id and m.status == InviteStatus.Active
+            if m.company_id == company_id and m.status == InviteStatus.ACTIVE
         ]
         return result[skip:skip + limit], len(result)
 
     async def get_invitations_by_company(self, company_id: UUID, skip: int = 0, limit: int = 10):
         result = [
             m for m in self.members.values()
-            if m.company_id == company_id and m.status == InviteStatus.Pending_invite
+            if m.company_id == company_id and m.status == InviteStatus.PENDING_INVITE
         ]
         return result[skip:skip + limit], len(result)
 
     async def get_request_by_company(self, company_id: UUID, skip: int = 0, limit: int = 10):
         result = [
             m for m in self.members.values()
-            if m.company_id == company_id and m.status == InviteStatus.Pending_request
+            if m.company_id == company_id and m.status == InviteStatus.PENDING_REQUEST
         ]
         return result[skip:skip + limit], len(result)
 
     async def get_invitation_by_user_paginated(self, user_id: UUID, skip: int = 0, limit: int = 10):
         result = [
             m for m in self.members.values()
-            if m.user_id == user_id and m.status == InviteStatus.Pending_invite
+            if m.user_id == user_id and m.status == InviteStatus.PENDING_INVITE
         ]
         return result[skip:skip + limit], len(result)
 
     async def get_requests_by_user(self, user_id: UUID, skip: int = 0, limit: int = 10):
         result = [
             m for m in self.members.values()
-            if m.user_id == user_id and m.status == InviteStatus.Pending_request
+            if m.user_id == user_id and m.status == InviteStatus.PENDING_REQUEST
         ]
         return result[skip:skip + limit], len(result)
 
