@@ -87,3 +87,42 @@ async def test_save_quiz_answers_stores_multiple_answers(redis_service, mock_red
     stored_data = mock_redis.set.call_args[0][1]
     parsed = json.loads(stored_data)
     assert len(parsed) == 3
+
+
+async def test_get_quiz_answers_uses_correct_key(redis_service, mock_redis):
+    user_id, company_id, quiz_id = uuid4(), uuid4(), uuid4()
+    mock_redis.get.return_value = None
+
+    await redis_service.get_quiz_answers_redis(user_id, company_id, quiz_id)
+
+    mock_redis.get.assert_awaited_once_with(f"answers:{company_id}:{quiz_id}:{user_id}")
+
+
+async def test_get_quiz_answers_returns_none_when_missing(redis_service, mock_redis):
+    mock_redis.get.return_value = None
+
+    result = await redis_service.get_quiz_answers_redis(uuid4(), uuid4(), uuid4())
+
+    assert result is None
+
+
+async def test_get_quiz_answers_deserializes_stored_answers(redis_service, mock_redis):
+    answer = make_redis_answer()
+    mock_redis.get.return_value = json.dumps([answer.model_dump(mode="json")])
+
+    result = await redis_service.get_quiz_answers_redis(
+        answer.user_id, answer.company_id, answer.quiz_id
+    )
+
+    assert len(result) == 1
+    assert result[0].question_id == answer.question_id
+    assert result[0].is_correct == answer.is_correct
+
+
+async def test_get_quiz_answers_deserializes_multiple_answers(redis_service, mock_redis):
+    answers = [make_redis_answer() for _ in range(3)]
+    mock_redis.get.return_value = json.dumps([a.model_dump(mode="json") for a in answers])
+
+    result = await redis_service.get_quiz_answers_redis(uuid4(), uuid4(), uuid4())
+
+    assert len(result) == 3

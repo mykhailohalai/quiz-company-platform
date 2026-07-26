@@ -1,9 +1,18 @@
+from contextlib import asynccontextmanager
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
 
+from app.core.redis import redis_client
+from app.services.notification_service import NotificationService
+from app.services.quiz_service import QuizService
+from app.services.redis_service import RedisService
+from app.utils.unit_of_work import get_uow
 from app.routers.notification import notification_router
 from app.routers import router
 from app.routers.user import user_router
@@ -34,7 +43,23 @@ from app.exceptions.quiz_exceptions import (
     QuizResultAlreadyExistsException,
 )
 
-app = FastAPI(title=settings.app_name)
+async def check_overdue_quizzes() -> None:
+    quiz_service = QuizService(
+        get_uow(), RedisService(redis_client), NotificationService(get_uow())
+    )
+    await quiz_service.notify_all_overdue_quizzes()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(check_overdue_quizzes, CronTrigger(hour=0, minute=0))
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 origins = settings.allowed_origins
 

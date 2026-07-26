@@ -76,6 +76,20 @@ async def test_send_notification_no_members_creates_nothing(notification_service
     assert len(uow.notifications.notifications) == 0
 
 
+# --- send_notification_to_user ---
+
+async def test_send_notification_to_user_creates_single_notification(notification_service, uow):
+    user_id = uuid4()
+
+    await notification_service.send_notification_to_user(user_id, "Time to retake quiz!")
+
+    notifications = list(uow.notifications.notifications.values())
+    assert len(notifications) == 1
+    assert notifications[0].user_id == user_id
+    assert notifications[0].message == "Time to retake quiz!"
+    assert notifications[0].status == NotificationStatus.UNREAD
+
+
 # --- get_notifications_by_user ---
 
 async def test_get_notifications_by_user_returns_only_own(notification_service, uow):

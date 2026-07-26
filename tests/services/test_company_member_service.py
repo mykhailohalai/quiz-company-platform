@@ -367,3 +367,119 @@ async def test_get_admins_raises_when_not_member(company_member_service, uow):
 
     with pytest.raises(ForbiddenException):
         await company_member_service.get_admins_by_company(company.id, uuid4(), skip=0, limit=10)
+
+
+# --- get_all_members ---
+
+async def test_get_all_members_returns_only_active(company_member_service, uow):
+    company_id = uuid4()
+    active = make_member(company_id=company_id, status=InviteStatus.ACTIVE)
+    pending = make_member(company_id=company_id, status=InviteStatus.PENDING_INVITE)
+    uow.company_members.members[active.id] = active
+    uow.company_members.members[pending.id] = pending
+
+    members = await company_member_service.get_all_members(company_id)
+
+    assert members == [active]
+
+
+# --- get_invitations_by_company ---
+
+async def test_get_invitations_by_company_returns_pending_invites(company_member_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    invitation = make_member(company_id=company.id, status=InviteStatus.PENDING_INVITE)
+    active = make_member(company_id=company.id, status=InviteStatus.ACTIVE)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[invitation.id] = invitation
+    uow.company_members.members[active.id] = active
+
+    invitations, total = await company_member_service.get_invitations_by_company(
+        company.id, owner_id, skip=0, limit=10
+    )
+
+    assert invitations == [invitation]
+    assert total == 1
+
+
+async def test_get_invitations_by_company_raises_when_not_owner(company_member_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(ForbiddenException):
+        await company_member_service.get_invitations_by_company(company.id, uuid4(), skip=0, limit=10)
+
+
+# --- get_requests_by_company ---
+
+async def test_get_requests_by_company_returns_pending_requests(company_member_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    request = make_member(company_id=company.id, status=InviteStatus.PENDING_REQUEST)
+    active = make_member(company_id=company.id, status=InviteStatus.ACTIVE)
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[request.id] = request
+    uow.company_members.members[active.id] = active
+
+    requests, total = await company_member_service.get_requests_by_company(
+        company.id, owner_id, skip=0, limit=10
+    )
+
+    assert requests == [request]
+    assert total == 1
+
+
+async def test_get_requests_by_company_raises_when_not_owner(company_member_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(ForbiddenException):
+        await company_member_service.get_requests_by_company(company.id, uuid4(), skip=0, limit=10)
+
+
+# --- get_invitations_by_user ---
+
+async def test_get_invitations_by_user_returns_own_pending_invites(company_member_service, uow):
+    user_id = uuid4()
+    own_invitation = make_member(user_id=user_id, status=InviteStatus.PENDING_INVITE)
+    other_invitation = make_member(status=InviteStatus.PENDING_INVITE)
+    uow.company_members.members[own_invitation.id] = own_invitation
+    uow.company_members.members[other_invitation.id] = other_invitation
+
+    invitations, total = await company_member_service.get_invitations_by_user(user_id, skip=0, limit=10)
+
+    assert invitations == [own_invitation]
+    assert total == 1
+
+
+# --- get_requests_by_user ---
+
+async def test_get_requests_by_user_returns_own_pending_requests(company_member_service, uow):
+    user_id = uuid4()
+    own_request = make_member(user_id=user_id, status=InviteStatus.PENDING_REQUEST)
+    other_request = make_member(status=InviteStatus.PENDING_REQUEST)
+    uow.company_members.members[own_request.id] = own_request
+    uow.company_members.members[other_request.id] = other_request
+
+    requests, total = await company_member_service.get_requests_by_user(user_id, skip=0, limit=10)
+
+    assert requests == [own_request]
+    assert total == 1
+
+
+# --- is_admin ---
+
+async def test_is_admin_returns_true_for_admin(company_member_service, uow):
+    company_id = uuid4()
+    admin = make_member(company_id=company_id, status=InviteStatus.ACTIVE, role=Role.ADMIN)
+    uow.company_members.members[admin.id] = admin
+
+    assert await company_member_service.is_admin(admin.user_id, company_id) is True
+
+
+async def test_is_admin_returns_false_for_non_admin(company_member_service, uow):
+    company_id = uuid4()
+    member = make_member(company_id=company_id, status=InviteStatus.ACTIVE, role=Role.MEMBER)
+    uow.company_members.members[member.id] = member
+
+    assert await company_member_service.is_admin(member.user_id, company_id) is False

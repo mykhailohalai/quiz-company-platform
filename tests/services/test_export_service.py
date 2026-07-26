@@ -104,6 +104,57 @@ async def test_get_quiz_results_for_export_raises_when_not_owner_or_admin(quiz_s
         await quiz_service.get_quiz_results_for_export(uuid4(), company.id, uuid4())
 
 
+# --- get_user_results_by_admin_and_owner ---
+
+async def test_get_user_results_by_admin_and_owner_returns_target_user_results(quiz_service, uow):
+    owner_id = uuid4()
+    target_user_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    own_result = make_quiz_result(company_id=company.id, user_id=target_user_id)
+    other_result = make_quiz_result(company_id=company.id)
+    uow.companies.companies[company.id] = company
+    uow.quiz_results.results[own_result.id] = own_result
+    uow.quiz_results.results[other_result.id] = other_result
+
+    results = await quiz_service.get_user_results_by_admin_and_owner(
+        owner_id, target_user_id, company.id
+    )
+
+    assert results == [own_result]
+
+
+async def test_get_user_results_by_admin_and_owner_raises_when_not_owner_or_admin(quiz_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(ForbiddenException):
+        await quiz_service.get_user_results_by_admin_and_owner(uuid4(), uuid4(), company.id)
+
+
+# --- get_all_results_by_admin_and_owner ---
+
+async def test_get_all_results_by_admin_and_owner_returns_company_results(quiz_service, uow):
+    owner_id = uuid4()
+    company = make_company(owner_id=owner_id)
+    in_company = make_quiz_result(company_id=company.id)
+    other_company_result = make_quiz_result()
+    uow.companies.companies[company.id] = company
+    uow.quiz_results.results[in_company.id] = in_company
+    uow.quiz_results.results[other_company_result.id] = other_company_result
+
+    results = await quiz_service.get_all_results_by_admin_and_owner(owner_id, company.id)
+
+    assert results == [in_company]
+
+
+async def test_get_all_results_by_admin_and_owner_raises_when_not_owner_or_admin(quiz_service, uow):
+    company = make_company()
+    uow.companies.companies[company.id] = company
+
+    with pytest.raises(ForbiddenException):
+        await quiz_service.get_all_results_by_admin_and_owner(uuid4(), company.id)
+
+
 # --- get_my_quiz_result ---
 
 async def test_get_my_quiz_result_returns_from_redis(quiz_service, mock_redis_service):

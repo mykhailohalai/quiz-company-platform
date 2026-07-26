@@ -9,6 +9,7 @@ from app.models.company import Company, CompanyVisibility
 from app.models.company_member import CompanyMember, InviteStatus, Role
 from app.models.quiz import Quiz, QuestionType
 from app.models.quiz_result import QuizResult
+from app.models.user import User
 from app.schemas.quiz import (
     QuizCreateRequestSchema,
     QuizUpdateRequestSchema,
@@ -79,6 +80,17 @@ def make_quiz_data(**kwargs):
     )
     defaults.update(kwargs)
     return QuizCreateRequestSchema(**defaults)
+
+
+def make_user(**kwargs):
+    defaults = dict(
+        id=uuid4(),
+        username="johndoe",
+        email="john@example.com",
+        password="hashed-password",
+    )
+    defaults.update(kwargs)
+    return User(**defaults)
 
 
 def make_quiz_result(**kwargs):
@@ -452,3 +464,104 @@ async def test_get_last_attempts_by_company_raises_when_not_owner_or_admin(quiz_
 
     with pytest.raises(ForbiddenException):
         await quiz_service.get_last_attempts_by_company(company.id, uuid4())
+
+
+# --- notify_all_overdue_quizzes ---
+
+async def test_notify_all_overdue_quizzes_notifies_when_never_completed(quiz_service, uow):
+    user = make_user()
+    company = make_company()
+    member = make_member(company_id=company.id, user_id=user.id)
+    quiz = make_quiz(company_id=company.id, frequency=1)
+    uow.users.users[user.id] = user
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[member.id] = member
+    uow.quizzes.quizzes[quiz.id] = quiz
+
+    await quiz_service.notify_all_overdue_quizzes()
+
+    notifications = list(uow.notifications.notifications.values())
+    assert len(notifications) == 1
+    assert notifications[0].user_id == user.id
+    assert quiz.title in notifications[0].message
+
+
+async def test_notify_all_overdue_quizzes_skips_when_completed_recently(quiz_service, uow):
+    user = make_user()
+    company = make_company()
+    member = make_member(company_id=company.id, user_id=user.id)
+    quiz = make_quiz(company_id=company.id, frequency=7)
+    result = make_quiz_result(user_id=user.id, quiz_id=quiz.id, company_id=company.id)
+    uow.users.users[user.id] = user
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[member.id] = member
+    uow.quizzes.quizzes[quiz.id] = quiz
+    uow.quiz_results.results[result.id] = result
+
+    await quiz_service.notify_all_overdue_quizzes()
+
+    assert len(uow.notifications.notifications) == 0
+
+
+async def test_notify_all_overdue_quizzes_notifies_when_overdue(quiz_service, uow):
+    user = make_user()
+    company = make_company()
+    member = make_member(company_id=company.id, user_id=user.id)
+    quiz = make_quiz(company_id=company.id, frequency=1)
+    result = make_quiz_result(
+        user_id=user.id,
+        quiz_id=quiz.id,
+        company_id=company.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=5),
+    )
+    uow.users.users[user.id] = user
+    uow.companies.companies[company.id] = company
+    uow.company_members.members[member.id] = member
+    uow.quizzes.quizzes[quiz.id] = quiz
+    uow.quiz_results.results[result.id] = result
+
+    await quiz_service.notify_all_overdue_quizzes()
+
+    notifications = list(uow.notifications.notifications.values())
+    assert len(notifications) == 1
+    assert notifications[0].user_id == user.id
+
+
+async def test_notify_all_overdue_quizzes_ignores_quizzes_from_other_companies(quiz_service, uow):
+    user = make_user()
+    other_company = make_company()
+    quiz = make_quiz(company_id=other_company.id, frequency=1)
+    uow.users.users[user.id] = user
+    uow.companies.companies[other_company.id] = other_company
+    uow.quizzes.quizzes[quiz.id] = quiz
+
+    await quiz_service.notify_all_overdue_quizzes()
+
+    assert len(uow.notifications.notifications) == 0
+
+
+async def test_notify_all_overdue_quizzes_notifies_every_user(quiz_service, uow):
+    company = make_company()
+    user1 = make_user(username="user1", email="user1@example.com")
+    user2 = make_user(username="user2", email="user2@example.com")
+    member1 = make_member(company_id=company.id, user_id=user1.id)
+    member2 = make_member(company_id=company.id, user_id=user2.id)
+    quiz = make_quiz(company_id=company.id, frequency=1)
+    uow.companies.companies[company.id] = company
+    uow.users.users[user1.id] = user1
+    uow.users.users[user2.id] = user2
+    uow.company_members.members[member1.id] = member1
+    uow.company_members.members[member2.id] = member2
+    uow.quizzes.quizzes[quiz.id] = quiz
+
+    await quiz_service.notify_all_overdue_quizzes()
+
+    notifications = list(uow.notifications.notifications.values())
+    assert len(notifications) == 2
+    assert {n.user_id for n in notifications} == {user1.id, user2.id}
+
+
+async def test_notify_all_overdue_quizzes_does_nothing_when_no_users(quiz_service, uow):
+    await quiz_service.notify_all_overdue_quizzes()
+
+    assert len(uow.notifications.notifications) == 0

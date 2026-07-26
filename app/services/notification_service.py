@@ -14,7 +14,9 @@ class NotificationService:
 
     async def send_notification(self, company_id: UUID, message: str) -> None:
         async with self.uow:
-            members = await self.uow.company_members.get_all_members_by_company(company_id)
+            members = await self.uow.company_members.get_all_members_by_company(
+                company_id
+            )
             for member in members:
                 notification = Notification(
                     user_id=member.user_id,
@@ -24,15 +26,37 @@ class NotificationService:
                 )
                 await self.uow.notifications.create(notification)
             await self.uow.commit()
-            logger.info("Sent %d notifications for company %s", len(members), company_id)
+            logger.info(
+                "Sent %d notifications for company %s", len(members), company_id
+            )
 
-    async def get_notifications_by_user(self, user_id: UUID, skip: int, limit: int) -> tuple[list[Notification], int]:
+    async def send_notification_to_user(self, user_id: UUID, message: str) -> None:
         async with self.uow:
-            return await self.uow.notifications.get_notifications_by_user(user_id, skip, limit)
+            notification = Notification(
+                user_id=user_id,
+                message=message,
+                status=NotificationStatus.UNREAD,
+                timestamp=datetime.utcnow(),
+            )
+            await self.uow.notifications.create(notification)
+            await self.uow.commit()
+            logger.info("Sent notification to user %s", user_id)
+
+    async def get_notifications_by_user(
+        self, user_id: UUID, skip: int, limit: int
+    ) -> tuple[list[Notification], int]:
+        async with self.uow:
+            return await self.uow.notifications.get_notifications_by_user(
+                user_id, skip, limit
+            )
 
     async def mark_as_read(self, notification_id: UUID, user_id: UUID) -> Notification:
         async with self.uow:
-            notification = await self.uow.notifications.mark_as_read(notification_id, user_id)
+            notification = await self.uow.notifications.mark_as_read(
+                notification_id, user_id
+            )
             await self.uow.commit()
-            logger.info("Notification %s marked as read by user %s", notification_id, user_id)
+            logger.info(
+                "Notification %s marked as read by user %s", notification_id, user_id
+            )
             return notification

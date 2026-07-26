@@ -20,3 +20,8 @@ class UserRepository(BaseRepository[User, UserUpdateRequestSchema]):
             select(User).where(User.username == username)
         )
         return result.scalar_one_or_none()
+
+    async def get_all_users(self) -> list[User]:
+        users = await self.session.execute(select(User))
+
+        return users.scalars().all()

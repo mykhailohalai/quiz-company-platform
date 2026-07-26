@@ -1,11 +1,13 @@
 from uuid import UUID
 
 from app.exceptions.quiz_exceptions import QuizNotFoundException, QuizAlreadyExistsException
+from app.models.company_member import InviteStatus
 
 
 class FakeQuizRepository:
-    def __init__(self, quizzes=None):
+    def __init__(self, quizzes=None, company_members=None):
         self.quizzes = {q.id: q for q in (quizzes or [])}
+        self.company_members = company_members
 
     async def get_by_id(self, quiz_id: UUID):
         quiz = self.quizzes.get(quiz_id)

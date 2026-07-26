@@ -12,6 +12,9 @@ class FakeUserRepository:
         users = list(self.users.values())
         return users[skip : skip + limit], len(users)
 
+    async def get_all_users(self):
+        return list(self.users.values())
+
     async def get_by_id(self, user_id):
         user = self.users.get(user_id)
         if user is None:

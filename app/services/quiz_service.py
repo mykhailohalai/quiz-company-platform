@@ -317,3 +317,41 @@ class QuizService:
                 )
                 for user_id, last_attempt_at in results
             ]
+
+
+    async def _notify_overdue_quizzes_for_user(self, user_id: UUID):
+        async with self.uow:
+            available_quizzes = await self.uow.quizzes.get_available_quizzes_for_user(
+                user_id
+            )
+            last_attempts = (
+                await self.uow.quiz_results.get_last_attempt_for_all_quizzes_by_user(
+                    user_id
+                )
+            )
+            last_attempt_by_quiz = {
+                quiz_id: last_at for quiz_id, _, last_at in last_attempts
+            }
+
+            for quiz in available_quizzes:
+                last_attempt_at = last_attempt_by_quiz.get(quiz.id)
+                if last_attempt_at is None:
+                    overdue = True
+                else:
+                    if last_attempt_at.tzinfo is None:
+                        last_attempt_at = last_attempt_at.replace(tzinfo=timezone.utc)
+                    overdue = (
+                        datetime.now(timezone.utc) - last_attempt_at
+                    ).days >= quiz.frequency
+
+                if overdue:
+                    await self.notification_service.send_notification_to_user(
+                        user_id, f"Time to retake quiz '{quiz.title}'"
+                    )
+
+    async def notify_all_overdue_quizzes(self) -> None:
+        async with self.uow:
+            users = await self.uow.users.get_all_users()
+
+        for user in users:
+            await self._notify_overdue_quizzes_for_user(user.id)
