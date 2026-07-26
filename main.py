@@ -8,6 +8,7 @@ from app.routers import router
 from app.routers.user import user_router
 from app.routers.company import company_router
 from app.routers.company_member import company_member_router
+from app.routers.quiz import quiz_router
 from app.core import settings
 from app.exceptions.general_exceptions import ForbiddenException
 from app.exceptions.user_exceptions import (
@@ -22,6 +23,10 @@ from app.exceptions.company_exceptions import (
 from app.exceptions.company_member_exceptions import (
     CompanyMemberNotFoundException,
     CompanyMemberAlreadyExistsException,
+)
+from app.exceptions.quiz_exceptions import (
+    QuizNotFoundException,
+    QuizAlreadyExistsException,
 )
 
 app = FastAPI(title=settings.app_name)
@@ -40,6 +45,7 @@ app.include_router(router)
 app.include_router(user_router)
 app.include_router(company_router)
 app.include_router(company_member_router)
+app.include_router(quiz_router)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,6 +63,8 @@ _HTTP_EXCEPTION_MAP: dict[type[Exception], int] = {
     CompanyAlreadyExistsException: status.HTTP_409_CONFLICT,
     CompanyMemberNotFoundException: status.HTTP_404_NOT_FOUND,
     CompanyMemberAlreadyExistsException: status.HTTP_409_CONFLICT,
+    QuizNotFoundException: status.HTTP_404_NOT_FOUND,
+    QuizAlreadyExistsException: status.HTTP_409_CONFLICT,
     ForbiddenException: status.HTTP_403_FORBIDDEN,
 }
 

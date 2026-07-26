@@ -271,6 +271,3 @@ class CompanyMemberService:
                 company.id, skip, limit
             )
 
-
-def get_company_member_service(uow=Depends(get_uow)) -> CompanyMemberService:
-    return CompanyMemberService(uow)

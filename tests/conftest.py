@@ -2,9 +2,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.services.user_service import UserService, get_user_service
-from app.services.company_service import CompanyService, get_company_service
-from app.services.company_member_service import CompanyMemberService, get_company_member_service
+from app.dependencies import get_company_member_service, get_company_service, get_user_service
+from app.services.user_service import UserService
+from app.services.company_service import CompanyService
+from app.services.company_member_service import CompanyMemberService
+from app.services.quiz_service import QuizService
 from main import app
 from fakes.fake_unit_of_work import FakeUnitOfWork
 
@@ -47,6 +49,11 @@ def mock_company_service(uow):
 @pytest.fixture
 def company_member_service(uow):
     return CompanyMemberService(uow)
+
+
+@pytest.fixture
+def quiz_service(uow):
+    return QuizService(uow)
 
 
 @pytest.fixture

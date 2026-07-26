@@ -181,6 +181,3 @@ class UserService:
             expires_in=settings.jwt_expire_minutes * 60,
         )
 
-
-def get_user_service(uow=Depends(get_uow)) -> UserService:
-    return UserService(uow)
