@@ -64,6 +64,8 @@ class QuizRepository(BaseRepository[Quiz, QuizUpdateRequestSchema]):
                     question_id=question.id,
                 ))
 
+        self.session.expire(quiz, ["questions"])
+
     async def get_with_relations(self, company_id: UUID, quiz_id: UUID) -> Quiz:
         result = await self.session.execute(
             select(Quiz)
@@ -113,3 +115,11 @@ class QuizRepository(BaseRepository[Quiz, QuizUpdateRequestSchema]):
             )
         )
         return result.scalars().all()
+
+    async def get_by_company_and_title(self, company_id: UUID, title: str) -> Quiz | None:
+        result = await self.session.execute(
+            select(Quiz).where(
+                and_(Quiz.company_id == company_id, Quiz.title == title)
+            )
+        )
+        return result.scalar_one_or_none()
